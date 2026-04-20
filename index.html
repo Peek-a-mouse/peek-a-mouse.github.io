@@ -424,7 +424,29 @@ window.doUp=async()=>{
 };
 
 // LOGIN
-window.doIn=async()=>{\n  const login=g('li').value.trim().toLowerCase().replace(/\s+/g,'_');\n  const pass=g('lp').value; const err=g('le');\n  if(!login||!pass) return err.textContent='Введи логин и пароль';\n  // Superuser check\n  if(login===SUPERUSER.login&&pass===SUPERUSER.password){\n    try{\n      const cred=await signInWithEmailAndPassword(auth,login+'@chatwave.app',pass);\n      me={...me,isSU:true}; err.textContent='';\n    }catch(e){\n      // If superuser account doesn't exist yet, create it\n      try{\n        const cred=await createUserWithEmailAndPassword(auth,login+'@chatwave.app',pass);\n        await updateProfile(cred.user,{displayName:login});\n        await set(ref(db,`users/${cred.user.uid}`),{uid:cred.user.uid,name:login,online:true,at:serverTimestamp()});\n        me={...me,isSU:true}; err.textContent='';\n      }catch(e2){err.textContent=fErr(e2.code);}\n    }\n    return;\n  }\n  try{await signInWithEmailAndPassword(auth,login+'@chatwave.app',pass);err.textContent='';}\n  catch(e){err.textContent=fErr(e.code);}\n};
+window.doIn=async()=>{
+  const rawLogin=g('li').value.trim().toLowerCase().replace(/\s+/g,'_');
+  const pass=g('lp').value; const err=g('le');
+  if(!rawLogin||!pass) return err.textContent='Введи логин и пароль';
+  const isSuperLogin = rawLogin===SUPERUSER.login && pass===SUPERUSER.password;
+  try{
+    const cred=await signInWithEmailAndPassword(auth,rawLogin+'@chatwave.app',pass);
+    if(isSuperLogin) me={...me, isSU:true};
+    err.textContent='';
+  }catch(e){
+    if(isSuperLogin){
+      // Superuser account doesn't exist yet — create it
+      try{
+        const cred=await createUserWithEmailAndPassword(auth,rawLogin+'@chatwave.app',pass);
+        await updateProfile(cred.user,{displayName:rawLogin});
+        await set(ref(db,`users/${cred.user.uid}`),{uid:cred.user.uid,name:rawLogin,online:true,at:serverTimestamp()});
+        me={...me,isSU:true}; err.textContent='';
+      }catch(e2){err.textContent=fErr(e2.code);}
+    } else {
+      err.textContent=fErr(e.code);
+    }
+  }
+};
 
 // GOOGLE
 window.doG=async()=>{
