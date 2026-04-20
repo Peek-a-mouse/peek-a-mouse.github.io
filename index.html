@@ -374,7 +374,8 @@ let me=null, curCh=null, curType=null, msgsRef=null;
 let files=[], tTmo=null, pRoom=null;
 
 // utils
-const g  = id => document.getElementById(id); window.togglePassField = (btn) => {
+const g  = id => document.getElementById(id); 
+  window.togglePassField = (btn) => {
   btn.classList.toggle('on');
   const field = document.getElementById('crpf');
   if (btn.classList.contains('on')) {
