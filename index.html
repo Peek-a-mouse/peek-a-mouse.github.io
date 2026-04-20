@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatWave</title>
+<title>Peek-a-mouse</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -13,16 +13,16 @@
   --bg4:     #e8e6de;
   --border:  #e2e0d6;
   --border2: #ccc9be;
-  --acc:     #2563eb;
-  --acc-l:   #eff6ff;
-  --acc-d:   #1d4ed8;
+  --acc:     #dc2626;
+  --acc-l:   #fff1f2;
+  --acc-d:   #b91c1c;
   --txt:     #1c1b18;
   --txt2:    #706e65;
   --txt3:    #a9a79f;
   --green:   #16a34a;
   --red:     #dc2626;
-  --own-bg:  #eff6ff;
-  --own-brd: #bfdbfe;
+  --own-bg:  #fff1f2;
+  --own-brd: #fecaca;
   --sh:      0 1px 6px #1c1b1809;
   --sh2:     0 4px 20px #1c1b1810;
   --r:       12px;
@@ -37,7 +37,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 
 /* ── AUTH ── */
 #auth{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(140deg,#e8f0fe 0%,#f6f5f1 55%,#fef9ee 100%);}
+  background:linear-gradient(140deg,#fee2e2 0%,#f6f5f1 55%,#fef9ee 100%);}
 .aw{width:100%;max-width:390px;padding:16px;}
 .ab{text-align:center;margin-bottom:24px;}
 .ab-logo{font-size:30px;font-weight:800;letter-spacing:-1px;}
@@ -80,7 +80,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .ci.on{background:var(--acc-l);}
 .ci.on .cn{color:var(--acc);font-weight:600;}
 .cico{width:32px;height:32px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;border:1px solid var(--border);}
-.cico.av{background:linear-gradient(135deg,#bfdbfe,#c7d2fe);color:var(--acc-d);font-weight:700;font-size:12px;border-color:#c7d2fe;}
+.cico.av{background:linear-gradient(135deg,#fecaca,#fbcfe8);color:#b91c1c;font-weight:700;font-size:12px;border-color:#fecaca;}
 .ci-inf{flex:1;min-width:0;}
 .cn{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cp{font-size:11px;color:var(--txt3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
@@ -88,7 +88,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .dm-btn:hover{border-color:var(--acc);color:var(--acc);background:var(--acc-l);}
 .ni{font-size:12px;color:var(--txt3);padding:3px 16px;}
 .sf{padding:10px 12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:9px;}
-.ma{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#bfdbfe,#c7d2fe);display:flex;align-items:center;justify-content:center;color:var(--acc-d);font-weight:700;font-size:12px;flex-shrink:0;}
+.ma{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#fecaca,#fbcfe8);display:flex;align-items:center;justify-content:center;color:#b91c1c;font-weight:700;font-size:12px;flex-shrink:0;}
 .mn{font-size:13px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .on-st{font-size:10px;color:var(--green);display:flex;align-items:center;gap:3px;}
 .on-st::before{content:'';width:5px;height:5px;background:var(--green);border-radius:50%;display:inline-block;}
@@ -116,9 +116,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .mb{max-width:68%;}
 .mm{font-size:10px;color:var(--txt3);margin-bottom:3px;display:flex;gap:5px;}
 .msg.ow .mm{flex-direction:row-reverse;}
-.mf{font-weight:700;color:var(--txt2);}
+.mf{font-weight:700;color:var(--txt2);font-size:12px;}
 .bbl{background:var(--bg2);border:1px solid var(--border);border-radius:13px 13px 13px 3px;padding:8px 12px;font-size:14px;line-height:1.55;word-break:break-word;box-shadow:var(--sh);}
-.msg.ow .bbl{background:var(--own-bg);border-color:var(--own-brd);border-radius:13px 13px 3px 13px;color:#1e3a8a;}
+.msg.ow .bbl{background:var(--own-bg);border-color:var(--own-brd);border-radius:13px 13px 3px 13px;color:#7f1d1d;}
 .bbl img{max-width:240px;max-height:190px;border-radius:7px;display:block;margin-top:5px;cursor:pointer;}
 .bbl video{max-width:240px;border-radius:7px;display:block;margin-top:5px;}
 .bbl audio{display:block;margin-top:5px;width:195px;}
@@ -151,7 +151,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .uav{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
 .ud{width:6px;height:6px;border-radius:50%;background:var(--txt3);flex-shrink:0;}
 .ud.on{background:var(--green);}
-.un{font-size:12px;font-weight:500;}
+.un{font-size:14px;font-weight:500;}
 
 /* ── MODALS ── */
 .ov{position:fixed;inset:0;z-index:200;background:#1c1b1842;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
@@ -195,6 +195,17 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 }
 .hbg{display:none;}
 .hidden{display:none!important;}
+
+/* ── GENDER BUTTONS ── */
+.gender-btn{flex:1;padding:8px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--txt2);border-radius:var(--r2);font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;}
+.gender-btn.on{border-color:var(--acc);background:var(--acc-l);color:var(--acc);font-weight:700;}
+/* ── GENDER AVATARS ── */
+.mava-m{background:linear-gradient(135deg,#93c5fd,#3b82f6)!important;color:#fff!important;}
+.mava-f{background:linear-gradient(135deg,#fca5a5,#ef4444)!important;color:#fff!important;}
+.uav-m{background:linear-gradient(135deg,#93c5fd,#3b82f6)!important;color:#fff!important;}
+.uav-f{background:linear-gradient(135deg,#fca5a5,#ef4444)!important;color:#fff!important;}
+.cico-m{background:linear-gradient(135deg,#93c5fd,#3b82f6)!important;color:#fff!important;border-color:#93c5fd!important;}
+.cico-f{background:linear-gradient(135deg,#fca5a5,#ef4444)!important;color:#fff!important;border-color:#fca5a5!important;}
 </style>
 </head>
 <body>
@@ -203,7 +214,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 <div id="auth">
   <div class="aw">
     <div class="ab">
-      <div class="ab-logo">Chat<b>Wave</b> 🌊</div>
+      <div class="ab-logo">Peek-a-<b>mouse</b> 🐭❤️</div>
       <div class="ab-sub">Простое и удобное общение</div>
     </div>
     <div class="ac">
@@ -222,6 +233,13 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
       <div id="t-up" class="hidden">
         <div class="f"><label>Придумай логин</label><input id="ri" type="text" placeholder="cool_nickname" maxlength="20" autocomplete="username"></div>
         <div class="f"><label>Придумай пароль</label><input id="rp" type="password" placeholder="минимум 6 символов" autocomplete="new-password"></div>
+        <div class="f">
+          <label>Пол</label>
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="gender-btn on" id="gb-m" onclick="selGender('m')">♂ Мужской</button>
+            <button type="button" class="gender-btn" id="gb-f" onclick="selGender('f')">♀ Женский</button>
+          </div>
+        </div>
         <button class="btn" onclick="doUp()">Создать аккаунт</button>
         <div class="note">Только логин и пароль — больше ничего не нужно</div>
         <div class="err" id="re"></div>
@@ -235,7 +253,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
   <!-- SIDEBAR -->
   <div id="sb">
     <div class="sb-top">
-      <div class="logo">Chat<b>Wave</b></div>
+      <div class="logo">Peek-a-<b>mouse</b></div>
       <button class="icb" onclick="openCR()" title="Создать комнату" style="font-size:16px;">＋</button>
       <button class="icb hbg" onclick="togSB()">✕</button>
     </div>
@@ -372,6 +390,12 @@ const db    = getDatabase(fbApp);
 
 let me=null, curCh=null, curType=null, msgsRef=null;
 let files=[], tTmo=null, pRoom=null;
+let regGender='m'; // default male
+window.selGender=g2=>{
+  regGender=g2;
+  document.querySelectorAll('.gender-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('gb-'+g2).classList.add('on');
+};
 
 // ── SUPERUSER ──
 const SUPERUSER = { login: 'max', password: 'yura086004' };
@@ -407,14 +431,17 @@ window.swTab=t=>{
 
 // REGISTER
 window.doUp=async()=>{
-  const login=g('ri').value.trim().toLowerCase().replace(/[^a-zа-яёa-z0-9_]/gi,'');
+  const rawLogin=g('ri').value.trim().replace(/[^a-zа-яёA-ZА-ЯЁ0-9_]/gi,'');
+  const login=rawLogin.toLowerCase().replace(/[^a-zа-яё0-9_]/gi,'');
+  const displayName=rawLogin; // preserve original casing
   const pass=g('rp').value; const err=g('re');
   if(!login) return err.textContent='Придумай логин';
   if(pass.length<6) return err.textContent='Пароль минимум 6 символов';
+  const gender = regGender;
   try{
     const cred=await createUserWithEmailAndPassword(auth,login+'@chatwave.app',pass);
-    await updateProfile(cred.user,{displayName:login});
-    await set(ref(db,`users/${cred.user.uid}`),{uid:cred.user.uid,name:login,online:true,at:serverTimestamp()});
+    await updateProfile(cred.user,{displayName:displayName});
+    await set(ref(db,`users/${cred.user.uid}`),{uid:cred.user.uid,name:displayName,gender,online:true,at:serverTimestamp()});
     err.textContent='';
   }catch(e){err.textContent=fErr(e.code);}
 };
@@ -427,7 +454,11 @@ window.doIn=async()=>{
   const isSuperLogin = rawLogin===SUPERUSER.login && pass===SUPERUSER.password;
   try{
     const cred=await signInWithEmailAndPassword(auth,rawLogin+'@chatwave.app',pass);
-    if(isSuperLogin) me={...me, isSU:true};
+    if(isSuperLogin){
+      me={...me, isSU:true};
+      // Ensure superuser gender = m
+      await set(ref(db,`users/${cred.user.uid}/gender`),'m');
+    }
     err.textContent='';
   }catch(e){
     if(isSuperLogin){
@@ -435,7 +466,7 @@ window.doIn=async()=>{
       try{
         const cred=await createUserWithEmailAndPassword(auth,rawLogin+'@chatwave.app',pass);
         await updateProfile(cred.user,{displayName:rawLogin});
-        await set(ref(db,`users/${cred.user.uid}`),{uid:cred.user.uid,name:rawLogin,online:true,at:serverTimestamp()});
+        await set(ref(db,`users/${cred.user.uid}`),{uid:cred.user.uid,name:rawLogin,gender:'m',online:true,at:serverTimestamp()});
         me={...me,isSU:true}; err.textContent='';
       }catch(e2){err.textContent=fErr(e2.code);}
     } else {
@@ -463,16 +494,28 @@ window.doOut=async()=>{
 // AUTH STATE
 onAuthStateChanged(auth,async user=>{
   if(user){
-    const name=user.displayName||user.email.split('@')[0];
+    const rawName=user.displayName||user.email.split('@')[0];
     const wasSU = me && me.isSU;
-    const isSuperU = wasSU || name.toLowerCase()===SUPERUSER.login;
-    me={uid:user.uid,name,isSU:isSuperU};
+    const isSuperU = wasSU || rawName.toLowerCase()===SUPERUSER.login;
+    // Fetch gender from DB
+    const uSnap=await get(ref(db,`users/${user.uid}`));
+    const uData=uSnap.val()||{};
+    let gender = uData.gender || 'm';
+    // Superuser is always male
+    if(isSuperU){
+      gender='m';
+      // Ensure gender is saved in DB
+      if(uData.gender!=='m') await set(ref(db,`users/${user.uid}/gender`),'m');
+    }
+    me={uid:user.uid,name:rawName,isSU:isSuperU,gender};
     await set(ref(db,`users/${me.uid}/online`),true);
     onDisconnect(ref(db,`users/${me.uid}/online`)).set(false);
     g('auth').style.display='none';
     g('app').classList.remove('h');
-    g('mava').textContent=ini(me.name);
-    g('mn').textContent=me.name+(isSuperU?'<span class="superuser-badge">SU</span>':'');
+    const mavaEl=g('mava');
+    mavaEl.textContent=ini(me.name);
+    mavaEl.className='ma '+(gender==='f'?'mava-f':'mava-m');
+    g('mn').innerHTML=me.name+(isSuperU?'<span class="superuser-badge">SU</span>':'');
     ldRooms(); ldDMs(); ldUsers();
     openGen();
   }else{
@@ -536,9 +579,13 @@ function renderMsg(msg,c){
     else med+=`<audio src="${m.url}" controls></audio>`;
   });
   const d=document.createElement('div'); d.className='msg'+(own?' ow':'');
-  const bg=clr(msg.uid);
-  d.innerHTML=`<div class="mava" style="background:${bg};color:#fff">${ini(msg.sender)}</div>
-    <div class="mb"><div class="mm"><span class="mf">${esc(msg.sender)}</span><span>${t}</span></div>
+  // Determine gender for avatar color
+  const senderGender = msg.gender || (msg.uid===me?.uid ? me.gender : 'm');
+  const gClass = senderGender==='f' ? 'mava-f' : 'mava-m';
+  // Capitalize sender name if first char is uppercase in original
+  const senderDisplay = msg.sender ? msg.sender : '?';
+  d.innerHTML=`<div class="mava ${gClass}">${ini(msg.sender)}</div>
+    <div class="mb"><div class="mm"><span class="mf">${esc(senderDisplay)}</span><span>${t}</span></div>
     <div class="bbl">${msg.text?esc(msg.text):''}${med}</div></div>`;
   c.appendChild(d);
 }
@@ -562,7 +609,7 @@ window.send=async()=>{
     files=[]; g('chips').innerHTML='';
   }
   const path=curType==='general'?'messages/general':curType==='room'?`messages/rooms/${curCh}`:`messages/dms/${curCh}`;
-  const data={uid:me.uid,sender:me.name,ts:Date.now(),text:txt};
+  const data={uid:me.uid,sender:me.name,gender:me.gender||'m',ts:Date.now(),text:txt};
   if(media.length)data.media=media;
   await push(ref(db,path),data);
   const prev=txt||'📎 файл';
@@ -630,8 +677,9 @@ window.crRoom=async()=>{
 function ldRooms(){
   onValue(ref(db,'rooms'),snap=>{
     const rooms=snap.val()||{}; const l=g('rl'); l.innerHTML='';
-    if(!Object.keys(rooms).length){l.innerHTML='<div class="ni">Пока нет комнат</div>';return;}
-    Object.values(rooms).forEach(room=>{
+    const validRooms=Object.values(rooms).filter(room=>room&&room.id&&room.name);
+    if(!validRooms.length){l.innerHTML='<div class="ni">Пока нет комнат</div>';return;}
+    validRooms.forEach(room=>{
       const canDel = me && (isSU() || room.createdBy===me.uid);
       const el=document.createElement('div'); el.className='ci'; el.id='chi-'+room.id;
       el.innerHTML=`<div class="cico">${room.hasPassword?'🔒':'#️⃣'}</div>
@@ -646,9 +694,24 @@ function ldRooms(){
 window.delRoom=async(e,id,name)=>{
   e.stopPropagation();
   if(!confirm(`Удалить комнату "${name}" и всю её историю?`)) return;
+  // Permission check
+  const snap=await get(ref(db,`rooms/${id}`));
+  const room=snap.val();
+  if(!room){toast('⚠️ Комната уже удалена');return;}
+  if(!isSU() && room.createdBy!==me.uid){toast('⛔ Нет прав на удаление');return;}
+  // Remove from Firebase
   await remove(ref(db,`rooms/${id}`));
   await remove(ref(db,`messages/rooms/${id}`));
-  if(curCh===id){ curCh=null; curType=null; g('cv').classList.remove('v'); g('wlc').classList.remove('hidden'); }
+  // Immediately remove from DOM
+  const el=g('chi-'+id);
+  if(el)el.remove();
+  // If currently in this room — go back to welcome screen
+  if(curCh===id){
+    curCh=null; curType=null;
+    g('cv').classList.remove('v');
+    g('wlc').classList.remove('hidden');
+    if(msgsRef){off(msgsRef);msgsRef=null;}
+  }
   toast(`🗑️ Комната "${name}" удалена`);
 };
 function joinRoom(room){
@@ -672,8 +735,9 @@ function ldDMs(){
       const otherUid=id.split('_').find(u=>u!==me.uid);
       get(ref(db,`users/${otherUid}`)).then(s=>{
         const u=s.val(); if(!u)return;
+        const gClass=u.gender==='f'?'cico-f':'cico-m';
         const el=document.createElement('div'); el.className='ci'; el.id='chi-'+id;
-        el.innerHTML=`<div class="cico av">${ini(u.name)}</div>
+        el.innerHTML=`<div class="cico av ${gClass}">${ini(u.name)}</div>
           <div class="ci-inf"><div class="cn">${esc(u.name)}</div>
           <div class="cp">${dm.lastMessage?esc(dm.lastMessage):'Нет сообщений'}</div></div>`;
         el.onclick=()=>oDMCh(id,u);
@@ -691,8 +755,9 @@ window.srchU=()=>{
     const found=Object.values(users).filter(u=>u.uid!==me.uid&&u.name.toLowerCase().includes(q));
     if(!found.length){res.innerHTML='<div class="ni">Не найдено</div>';return;}
     found.forEach(u=>{
+      const gClass=u.gender==='f'?'uav-f':'uav-m';
       const el=document.createElement('div'); el.className='ui';
-      el.innerHTML=`<div class="uav" style="background:${clr(u.uid)};color:#fff">${ini(u.name)}</div>
+      el.innerHTML=`<div class="uav ${gClass}">${ini(u.name)}</div>
         <span class="un">${esc(u.name)}</span><div class="ud${u.online?' on':''}"></div>`;
       el.onclick=()=>{cM('m-dm');stDM(u);};
       res.appendChild(el);
@@ -711,8 +776,9 @@ function ldUsers(){
   onValue(ref(db,'users'),snap=>{
     const users=snap.val()||{}; const l=g('ul'); l.innerHTML='';
     Object.values(users).forEach(u=>{
+      const gClass=u.gender==='f'?'uav-f':'uav-m';
       const el=document.createElement('div'); el.className='ui';
-      el.innerHTML=`<div class="uav" style="background:${clr(u.uid)};color:#fff">${ini(u.name)}</div>
+      el.innerHTML=`<div class="uav ${gClass}">${ini(u.name)}</div>
         <span class="un">${esc(u.name)}</span><div class="ud${u.online?' on':''}"></div>`;
       if(u.uid!==me.uid)el.onclick=()=>stDM(u);
       l.appendChild(el);
