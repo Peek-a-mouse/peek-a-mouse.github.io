@@ -385,7 +385,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged, updateProfile, updatePassword
+  signOut, onAuthStateChanged, updateProfile, updatePassword,
+  EmailAuthProvider, reauthenticateWithCredential, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getDatabase, ref, push, set, onValue, off, onChildAdded,
@@ -467,6 +468,7 @@ window.doUp=async()=>{
     await set(ref(db,`users/${uid}`),{uid,name:displayName,gender,online:true,at:serverTimestamp()});
     await remove(ref(db,`freed_logins/${login}`));
     await remove(ref(db,`blocked_logins/${login}`));
+    await remove(ref(db,`kicked/${uid}`));
     err.textContent='';
   };
 
@@ -475,18 +477,22 @@ window.doUp=async()=>{
     await finishProfile(cred.user.uid);
   }catch(e){
     if(e.code==='auth/email-already-in-use'){
-      // Проверяем: возможно логин был освобождён (аккаунт удалён суперюзером)
+      // Проверяем: логин был освобождён суперюзером?
       const flSnap=await get(ref(db,`freed_logins/${login}`));
       if(flSnap.exists()){
         const {resetToken}=flSnap.val();
         try{
-          // Входим в старый Auth-аккаунт через сохранённый временный токен
+          // Входим через resetToken (его установил клиент удалённого пользователя)
           const cred2=await signInWithEmailAndPassword(auth,email,resetToken);
-          // Меняем пароль на новый, указанный пользователем
+          // Меняем пароль на новый указанный пользователем
           await updatePassword(cred2.user,pass);
           await finishProfile(cred2.user.uid);
         }catch(e2){
-          err.textContent='Ошибка восстановления логина: '+fErr(e2.code);
+          // resetToken не подошёл — пользователь был офлайн при удалении,
+          // пароль Auth не был сменён. Пробуем удалить Auth-аккаунт через deleteUser
+          // (это возможно только если мы можем войти — не можем без пароля)
+          // Сообщаем пользователю что нужно подождать или обратиться к администратору
+          err.textContent='Логин ещё не освободился. Попробуй через минуту или обратись к администратору.';
         }
       } else {
         err.textContent='Логин уже занят';
@@ -504,11 +510,18 @@ window.doIn=async()=>{
   if(!rawLogin||!pass) return err.textContent='Введи логин и пароль';
   const isSuperLogin = rawLogin===SUPERUSER.login && pass===SUPERUSER.password;
 
+  // Блокируем вход если аккаунт был удалён суперюзером и ещё не перерегистрирован
+  if(!isSuperLogin){
+    const flSnap=await get(ref(db,`freed_logins/${rawLogin}`));
+    if(flSnap.exists()){
+      return err.textContent='Этот аккаунт удалён. Для входа необходима новая регистрация.';
+    }
+  }
+
   try{
     const cred=await signInWithEmailAndPassword(auth,rawLogin+'@chatwave.app',pass);
     if(isSuperLogin){
       me={...me, isSU:true};
-      // Ensure superuser gender = m
       await set(ref(db,`users/${cred.user.uid}/gender`),'m');
     }
     // ── Дополнительная проверка: аккаунт удалён но Auth сессия ещё жива ──
@@ -516,7 +529,7 @@ window.doIn=async()=>{
       const uChk=await get(ref(db,`users/${cred.user.uid}`));
       if(!uChk.exists()){
         await signOut(auth);
-        return err.textContent='Аккаунт не найден. Зарегистрируйся заново.';
+        return err.textContent='Аккаунт удалён. Для входа необходима новая регистрация.';
       }
     }
     err.textContent='';
@@ -552,13 +565,11 @@ onAuthStateChanged(auth,async user=>{
       const loginKey=rawName.toLowerCase().replace(/[^a-z\u0430-\u044f\u04510-9_]/gi,'');
       const blSnap=await get(ref(db,`blocked_logins/${loginKey}`));
       if(blSnap.exists()){
-        // Логин заблокирован — принудительно выходим
         await signOut(auth);
         return;
       }
       const existSnap=await get(ref(db,`users/${user.uid}`));
       if(!existSnap.exists()){
-        // Пользователь удалён из DB — принудительно выходим
         await signOut(auth);
         return;
       }
@@ -567,19 +578,15 @@ onAuthStateChanged(auth,async user=>{
     const uSnap=await get(ref(db,`users/${user.uid}`));
     const uData=uSnap.val()||{};
     let gender = uData.gender || 'm';
-    // Superuser is always male
     if(isSuperU){
       gender='m';
-      // Ensure gender is saved in DB
       if(uData.gender!=='m') await set(ref(db,`users/${user.uid}/gender`),'m');
     }
     me={uid:user.uid,name:rawName,isSU:isSuperU,gender};
-    // Superuser is invisible — don't appear in online list
     if(!isSuperU){
       await set(ref(db,`users/${me.uid}/online`),true);
       onDisconnect(ref(db,`users/${me.uid}/online`)).set(false);
     } else {
-      // Ensure SU is marked offline so they're invisible
       await set(ref(db,`users/${me.uid}/online`),false);
     }
     g('auth').style.display='none';
@@ -590,6 +597,24 @@ onAuthStateChanged(auth,async user=>{
     g('mn').innerHTML=me.name+(isSuperU?'<span class="superuser-badge">SU</span>':'');
     ldRooms(); ldDMs(); ldUsers(); ldIgnores();
     openGen();
+
+    // ── Слушаем kicked-сигнал: суперюзер удалил аккаунт ──
+    if(!isSuperU){
+      onValue(ref(db,`kicked/${user.uid}`),async snap=>{
+        if(!snap.exists()) return;
+        const {resetToken}=snap.val();
+        try{
+          // Меняем пароль Auth на resetToken — это разблокирует повторную регистрацию
+          await updatePassword(user, resetToken);
+        }catch(err){
+          // Если сессия устарела — просто выходим
+        }
+        await set(ref(db,`users/${user.uid}/online`),false);
+        await remove(ref(db,`kicked/${user.uid}`));
+        await signOut(auth);
+        toast('⛔ Твой аккаунт был удалён администратором');
+      });
+    }
   }else{
     me=null;
     g('auth').style.display='flex';
@@ -971,20 +996,21 @@ window.delUser=async(e,uid,name)=>{
   // 1. Получаем данные пользователя из DB
   const uSnap=await get(ref(db,`users/${uid}`));
   const uData=uSnap.val()||{};
-  const loginKey=(uData.name||name).toLowerCase().replace(/[^a-zа-яё0-9_]/gi,'');
-  // 2. Сохраняем временный токен — он позволит новому пользователю "перехватить" Auth-аккаунт
-  const resetToken=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
+  const loginKey=(uData.name||name).toLowerCase().replace(/[^a-z\u0430-\u044f\u04510-9_]/gi,'');
+  // 2. Генерируем resetToken
+  const resetToken=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
+  // 3. Сохраняем freed_login запись
   await set(ref(db,`freed_logins/${loginKey}`),{uid,resetToken,freedAt:Date.now()});
-  // 3. Удаляем данные пользователя из DB
+  // 4. Удаляем данные пользователя из DB
   await remove(ref(db,`users/${uid}`));
-  // 4. Удаляем DM-чаты этого пользователя
+  // 5. Удаляем DM-чаты этого пользователя
   const dmsSnap=await get(ref(db,'dms'));
   const dms=dmsSnap.val()||{};
   for(const [id] of Object.entries(dms)){
     if(id.includes(uid)) await remove(ref(db,`dms/${id}`));
   }
-  // 5. Принудительно кикаем (на случай если сейчас онлайн)
-  await set(ref(db,`users/${uid}/kicked`),Date.now());
+  // 6. Кикаем с токеном — если пользователь онлайн, его клиент сменит пароль Auth на resetToken
+  await set(ref(db,`kicked/${uid}`),{resetToken,at:Date.now()});
   toast(`🗑️ Аккаунт "${name}" удалён. Логин освобождён.`);
 };
 
