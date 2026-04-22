@@ -316,7 +316,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
         <button class="icb hbg" onclick="togSB()" style="display:none">☰</button>
         <div class="ch-ico2" id="hico">🌐</div>
         <div><div class="cht" id="htit">Общий</div><div class="chs" id="hsub"></div></div>
-        <div class="chr"><button class="icb" id="clr-hist-btn" onclick="clearHistory()" title="Очистить историю" style="display:none">🗑️</button><button class="icb" id="del-dm-btn" onclick="delDMChat()" title="Удалить личный чат" style="display:none;color:var(--red)">🗑💬</button><button class="sound-toggle on" id="sound-btn" title="Звук личных сообщений" onclick="togSound()">🔔</button><button class="icb" onclick="togUP()" title="Участники">👥</button></div>
+        <div class="chr"><button class="icb" id="leave-room-btn" onclick="leaveRoom()" title="Выйти из комнаты" style="display:none">🚪</button><button class="icb" id="clr-hist-btn" onclick="clearHistory()" title="Очистить историю" style="display:none">🗑️</button><button class="icb" id="del-dm-btn" onclick="delDMChat()" title="Удалить личный чат" style="display:none;color:var(--red)">🗑💬</button><button class="sound-toggle on" id="sound-btn" title="Звук личных сообщений" onclick="togSound()">🔔</button><button class="icb" onclick="togUP()" title="Участники">👥</button></div>
       </div>
       <div class="msgs" id="msgs"></div>
       <div class="tl" id="tl"></div>
@@ -576,8 +576,10 @@ function openCh(id,type,title,icon,sub){
   // Show clear-history button for SU in general chat, or for SU/room owner in room
   const clrBtn=g('clr-hist-btn');
   const delDmBtn=g('del-dm-btn');
+  const leaveBtn=g('leave-room-btn');
   if(clrBtn) clrBtn.style.display='none';
   if(delDmBtn) delDmBtn.style.display='none';
+  if(leaveBtn) leaveBtn.style.display = (type==='room') ? '' : 'none';
   if(type==='general'&&isSU()&&clrBtn) clrBtn.style.display='';
   if(type==='dm'&&isSU()&&delDmBtn) delDmBtn.style.display='';
   if(type==='room'&&isSU()&&clrBtn) clrBtn.style.display='';
@@ -661,10 +663,7 @@ window.send=async()=>{
   await push(ref(db,path),data);
   const prev=txt||'📎 файл';
   if(curType==='general'){const p=g('pg');if(p)p.textContent=prev;}
-  else if(curType==='room'){
-    get(ref(db,`rooms/${curCh}/hasPassword`)).then(s=>{ if(!s.val()) set(ref(db,`rooms/${curCh}/lastMessage`),prev); });
-  }
-  // DM lastMessage intentionally not saved — privacy
+  // Room and DM lastMessage not saved — privacy
   g('mi').value=''; g('mi').style.height='';
   clrTyp();
 };
@@ -733,7 +732,7 @@ function ldRooms(){
       const el=document.createElement('div'); el.className='ci'; el.id='chi-'+room.id;
       el.innerHTML=`<div class="cico">${room.hasPassword?'🔒':'#️⃣'}</div>
         <div class="ci-inf"><div class="cn">${esc(room.name)}</div>
-        <div class="cp">${room.hasPassword?'Приватная комната':room.lastMessage?esc(room.lastMessage):'Нет сообщений'}</div></div>`
+        <div class="cp">${room.hasPassword?'Приватная комната':'Публичная комната'}</div></div>`
         +(canDel?`<button class="del-btn" title="Удалить комнату" onclick="delRoom(event,'${room.id}','${esc(room.name)}')">🗑</button>`:'');
       el.onclick=(e)=>{ if(!e.target.closest('.del-btn')) joinRoom(room); };
       l.appendChild(el);
@@ -1068,6 +1067,14 @@ window.clearDMHistory=async()=>{
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initResizer);
   else initResizer();
 })();
+
+// LEAVE ROOM — go back to general chat
+window.leaveRoom=()=>{
+  if(curType!=='room') return;
+  leaveRoomPresence();
+  if(me && !isSU()) remove(ref(db,`users/${me.uid}/inRoom`));
+  openGen();
+};
 
 // LIGHTBOX
 window.openLB=url=>{g('lbi').src=url;g('lb').style.display='flex';};
