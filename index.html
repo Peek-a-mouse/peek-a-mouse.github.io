@@ -654,7 +654,7 @@ window.send=async()=>{
   const prev=txt||'📎 файл';
   if(curType==='general'){const p=g('pg');if(p)p.textContent=prev;}
   else if(curType==='room')set(ref(db,`rooms/${curCh}/lastMessage`),prev);
-  else set(ref(db,`dms/${curCh}/lastMessage`),prev);
+  // DM lastMessage intentionally not saved — privacy
   g('mi').value=''; g('mi').style.height='';
   clrTyp();
 };
@@ -779,7 +779,7 @@ function ldDMs(){
         const el=document.createElement('div'); el.className='ci'; el.id='chi-'+id;
         el.innerHTML=`<div class="cico av ${gClass}">${ini(u.name)}</div>
           <div class="ci-inf"><div class="cn">${esc(u.name)}</div>
-          <div class="cp">${dm.lastMessage?esc(dm.lastMessage):'Нет сообщений'}</div></div>`;
+          <div class="cp">Личное сообщение</div></div>`;
         el.onclick=()=>oDMCh(id,u);
         l.appendChild(el);
       });
@@ -821,8 +821,7 @@ function ldUsers(){
       const gClass=u.gender==='f'?'uav-f':'uav-m';
       const el=document.createElement('div'); el.className='ui';
       // SU gets kick/ban buttons per user
-      const suBtns=isSU()?`<button class="kick-btn" title="Кикнуть из чата" onclick="kickUser(event,'${u.uid}','${esc(u.name)}')">⚡</button>
-        <button class="kick-btn del-u-btn" title="Удалить аккаунт" onclick="delUser(event,'${u.uid}','${esc(u.name)}')">🗑</button>`:'';
+      const suBtns=isSU()?`<button class="kick-btn" title="Кикнуть из чата" onclick="kickUser(event,'${u.uid}','${esc(u.name)}')">⚡</button>`:'';
       const igClass=ignoredUsers&&ignoredUsers[u.uid]?'ignored':'';
       const igTitle=ignoredUsers&&ignoredUsers[u.uid]?'Разблокировать':'Заблокировать';
       const igBtn=u.uid!==me.uid?`<button class="kick-btn ${igClass}" title="${igTitle}" onclick="toggleIgnore('${u.uid}','${esc(u.name)}');ldUsers();" style="font-size:11px">${ignoredUsers&&ignoredUsers[u.uid]?'✅':'🚫'}</button>`:'';
