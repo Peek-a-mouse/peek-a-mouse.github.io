@@ -156,6 +156,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .ui .un{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:calc(100% - 72px);min-width:40px;}
 .ui{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:7px;cursor:pointer;transition:background .15s;}
 .ui:hover{background:var(--bg3);}
+.ui[data-other]:active{background:var(--acc-l);}
+.ui[data-other]::after{content:'двойной тап → ЛС';position:absolute;right:6px;bottom:-18px;background:var(--txt);color:var(--bg2);font-size:10px;padding:2px 7px;border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;z-index:10;}
+.ui[data-other]:hover::after{opacity:.75;}
 .uav{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
 .ud{width:6px;height:6px;border-radius:50%;background:var(--txt3);flex-shrink:0;}
 .ud.on{background:var(--green);}
@@ -358,7 +361,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
   </div>
 
   <!-- USERS -->
-  <div id="up" class="open">
+  <div id="up" class="open" onclick="upBgClick(event)">
     <div id="up-resizer" title="Потяни чтобы изменить ширину"></div>
     <div class="up-header">
       <div class="upt" style="margin:0;padding:0;border:none;">👥 Пользователи</div>
@@ -936,9 +939,21 @@ function renderUList(usersMap, roomId, isRoom){
     const igClass = ignoredUsers&&ignoredUsers[u.uid] ? 'ignored' : '';
     const igTitle = ignoredUsers&&ignoredUsers[u.uid] ? 'Разблокировать' : 'Заблокировать';
     const igBtn = u.uid!==me.uid ? `<button class="kick-btn ${igClass}" title="${igTitle}" onclick="toggleIgnore('${u.uid}','${esc(u.name)}');ldUsers();" style="font-size:11px">${ignoredUsers&&ignoredUsers[u.uid]?'✅':'🚫'}</button>` : '';
+    if(u.uid!==me.uid) el.setAttribute('data-other','1');
     el.innerHTML = `<div class="uav ${gClass}">${ini(u.name)}</div>
       <span class="un" style="flex:1">${esc(u.name)}</span><div class="ud on"></div>${igBtn}${suBtns}`;
-    if(u.uid!==me.uid) el.onclick=(e)=>{ if(!e.target.closest('.kick-btn')) stDM(u); };
+    if(u.uid!==me.uid){
+      // Двойной клик/тап — открыть личное сообщение
+      el.ondblclick=(e)=>{ if(!e.target.closest('.kick-btn')) stDM(u); };
+      // Поддержка двойного тапа на мобильных (touchend)
+      let _lastTap=0;
+      el.addEventListener('touchend',(e)=>{
+        if(e.target.closest('.kick-btn'))return;
+        const now=Date.now();
+        if(now-_lastTap<350){ e.preventDefault(); stDM(u); }
+        _lastTap=now;
+      },{passive:false});
+    }
     l.appendChild(el);
   });
 }
@@ -1035,6 +1050,15 @@ function isIgnored(uid){ return !!(ignoredUsers&&ignoredUsers[uid]); }
 function hasYTLink(txt){
   return /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(txt);
 }
+
+// Close users panel when clicking on its background (not on a user item)
+window.upBgClick=(e)=>{
+  // only close if clicking directly on #up or #ul (the empty area), not on a .ui element
+  if(e.target.id==='up'||e.target.id==='ul'||e.target.classList.contains('ni')){
+    const up=g('up');
+    if(up.classList.contains('open')) togUP();
+  }
+};
 
 window.togUP=()=>{
   const up=g('up'); const ov=g('mob-overlay'); const btn=g('togup-btn');
