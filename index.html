@@ -333,7 +333,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
   </div>
 
   <!-- USERS -->
-  <div id="up">
+  <div id="up" class="open">
     <div id="up-resizer" title="Потяни чтобы изменить ширину"></div>
     <div class="upt">Пользователи</div>
     <div id="ul"></div>
@@ -536,7 +536,7 @@ onAuthStateChanged(auth,async user=>{
     mavaEl.textContent=ini(me.name);
     mavaEl.className='ma '+(gender==='f'?'mava-f':'mava-m');
     g('mn').innerHTML=me.name+(isSuperU?'<span class="superuser-badge">SU</span>':'');
-    ldRooms(); ldDMs(); initUsersListener(); ldIgnores();
+    ldRooms(); ldDMs(); ldIgnores(); initUsersListener();
     openGen();
   }else{
     me=null;
@@ -883,8 +883,8 @@ function drawUsers(){
   } else if(type==='dm'){
     l.innerHTML='<div class="ni">Личный чат</div>'; return;
   } else {
-    // General: online users (SU sees all)
-    if(!isSU()) list=list.filter(u=>u.online);
+    // General: show online users only
+    list=list.filter(u=>u.online);
   }
 
   if(!list.length){l.innerHTML='<div class="ni">Никого нет</div>';return;}
@@ -965,7 +965,7 @@ function hasYTLink(txt){
   return /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(txt);
 }
 
-window.togUP=()=>g('up').classList.toggle('open');
+window.togUP=()=>{ g('up').classList.toggle('open'); if(g('up').classList.contains('open')) drawUsers(); };
 
 window.togSB=()=>g('sb').classList.toggle('open');
 
