@@ -214,6 +214,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
   .ch{padding:10px 12px;}
   .msgs{padding:10px 11px;}
   .ia{padding:7px 9px 9px;}
+  body.dm-tabs-on .ia{padding-bottom:58px;}
+  #dm-tabs.has-tabs ~ * .ia, .ia.tabs-on{padding-bottom:56px;}
+  #cv.v{padding-bottom:0;}
   /* Auth page mobile */
   .aw{padding:12px 10px;}
   .ab-sub{font-size:13px!important;}
@@ -240,6 +243,31 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .cico-m{background:linear-gradient(135deg,#93c5fd,#3b82f6)!important;color:#fff!important;border-color:#93c5fd!important;}
 .cico-f{background:linear-gradient(135deg,#fca5a5,#ef4444)!important;color:#fff!important;border-color:#fca5a5!important;}
 /* ── SU KICK/DEL BUTTONS ── */
+
+
+/* ── MIC BUTTON ── */
+.mic-btn{width:34px;height:34px;border:none;border-radius:50%;background:var(--bg3);border:1.5px solid var(--border);color:var(--txt2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;flex-shrink:0;}
+.mic-btn:hover{border-color:var(--acc);background:var(--acc-l);}
+.mic-btn.recording{background:#fee2e2;border-color:var(--red);color:var(--red);animation:mic-pulse 1s infinite;}
+@keyframes mic-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+
+/* ── DM TABS (mobile) ── */
+#dm-tabs{display:none;position:fixed;bottom:0;left:0;right:0;z-index:52;background:var(--bg2);border-top:1.5px solid var(--border);flex-wrap:nowrap;overflow-x:auto;padding:4px 6px;gap:6px;}
+#dm-tabs.has-tabs{display:flex;}
+.dm-tab{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:var(--bg3);border:1.5px solid var(--border);cursor:pointer;font-size:12px;font-weight:600;color:var(--txt2);white-space:nowrap;transition:all .18s;flex-shrink:0;}
+.dm-tab.active{background:var(--acc-l);border-color:var(--acc);color:var(--acc);}
+.dm-tab.unread{border-color:var(--red);background:#fee2e2;color:var(--red);animation:tab-blink .9s infinite;}
+@keyframes tab-blink{0%,100%{opacity:1;}50%{opacity:0.45;}}
+.dm-tab .tab-close{margin-left:3px;opacity:0.6;font-size:10px;}
+.dm-tab .tab-av{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+
+/* ── DM UNREAD BLINK (desktop sidebar) ── */
+.ci.unread-dm .cn{animation:dm-blink .9s infinite;}
+.ci.unread-dm{border-left:3px solid var(--red);}
+@keyframes dm-blink{0%,100%{opacity:1;}50%{opacity:0.35;}}
+
+/* ── CLOSE DM BUTTON (mobile header) ── */
+#close-dm-btn{display:none;}
 
 /* ── SOUND & IGNORE BUTTONS ── */
 .sound-toggle{width:28px;height:28px;border:1.5px solid var(--border);background:var(--bg3);border-radius:7px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
@@ -342,7 +370,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
         <button class="icb hbg" onclick="togSB()" style="display:none">☰</button>
         <div class="ch-ico2" id="hico">🌐</div>
         <div><div class="cht" id="htit">Общий</div><div class="chs" id="hsub"></div></div>
-        <div class="chr"><button class="icb" id="leave-room-btn" onclick="leaveRoom()" title="Выйти из комнаты" style="display:none">🚪</button><button class="icb" id="clr-hist-btn" onclick="clearHistory()" title="Очистить историю" style="display:none">🗑️</button><button class="icb" id="del-dm-btn" onclick="delDMChat()" title="Удалить личный чат" style="display:none;color:var(--red)">🗑💬</button><button class="sound-toggle on" id="sound-btn" title="Звук личных сообщений" onclick="togSound()">🔔</button><button class="icb" id="togup-btn" onclick="togUP()" title="Участники">👥</button></div>
+        <div class="chr"><button class="icb" id="close-dm-btn" onclick="closeDMView()" title="Закрыть чат" style="display:none">✕</button><button class="icb" id="leave-room-btn" onclick="leaveRoom()" title="Выйти из комнаты" style="display:none">🚪</button><button class="icb" id="clr-hist-btn" onclick="clearHistory()" title="Очистить историю" style="display:none">🗑️</button><button class="icb" id="del-dm-btn" onclick="delDMChat()" title="Удалить личный чат" style="display:none;color:var(--red)">🗑💬</button><button class="sound-toggle on" id="sound-btn" title="Звук личных сообщений" onclick="togSound()">🔔</button><button class="icb" id="togup-btn" onclick="togUP()" title="Участники">👥</button></div>
       </div>
       <div class="msgs" id="msgs"></div>
       <div class="tl" id="tl"></div>
@@ -351,6 +379,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
         <div class="ir">
           <button class="ab2" onclick="document.getElementById('fi').click()" title="Файл">📎</button>
           <input id="fi" type="file" style="display:none" accept="image/*,video/*,audio/*" multiple onchange="hFiles(this.files)">
+          <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Голосовое сообщение">🎙️</button>
           <textarea id="mi" rows="1" placeholder="Написать сообщение..." onkeydown="onK(event)" oninput="grow(this);onT()"></textarea>
           <button class="sb2" onclick="send()">➤</button>
         </div>
@@ -596,8 +625,14 @@ function openCh(id,type,title,icon,sub){
     const m=snap.val();
     if(isIgnored(m.uid)) return; // skip ignored
     renderMsg(m,c); c.scrollTop=c.scrollHeight;
-    // DM sound: only on new messages after page load, not own
-    if(!_firstLoad && curType==='dm' && m.uid!==me?.uid && m.ts>_lastTs) playDMSound();
+    // DM sound + unread tab blink
+    if(!_firstLoad && curType==='dm' && m.uid!==me?.uid && m.ts>_lastTs){
+      playDMSound();
+    }
+    // If message arrives in a DM we're NOT currently viewing
+    if(!_firstLoad && type==='dm' && m.uid!==me?.uid && m.ts>_lastTs && curCh!==id){
+      markDMTabUnread(id);
+    }
     if(m.ts>_lastTs) _lastTs=m.ts;
   });
   // Clear firstLoad flag after short delay
@@ -630,6 +665,11 @@ function openCh(id,type,title,icon,sub){
     if(upPanel) upPanel.style.display='';
   }
   if(window.innerWidth<=660) g('sb').classList.remove('open');
+  // Show/hide close-DM button on mobile
+  const cbtn=g('close-dm-btn');
+  if(cbtn) cbtn.style.display=(type==='dm'&&window.innerWidth<=660)?'':'none';
+  if(type==='dm') markDMTabRead(id);
+  renderDMTabs();
 }
 window.openGen=()=>{
   leaveRoomPresence();
@@ -1205,9 +1245,123 @@ window.leaveRoom=()=>{
   openGen();
 };
 
+
+// ═══════════════════════════════════════════
+// MIC — voice message recording
+// ═══════════════════════════════════════════
+let _micStream=null, _mediaRec=null, _micChunks=[];
+
+window.toggleMic=async()=>{
+  const btn=g('mic-btn');
+  if(_mediaRec && _mediaRec.state==='recording'){
+    _mediaRec.stop();
+    return;
+  }
+  try{
+    _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    _mediaRec=new MediaRecorder(_micStream);
+    _micChunks=[];
+    _mediaRec.ondataavailable=e=>{ if(e.data.size>0) _micChunks.push(e.data); };
+    _mediaRec.onstop=async()=>{
+      btn.textContent='🎙️'; btn.classList.remove('recording');
+      _micStream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(_micChunks,{type:'audio/webm'});
+      if(blob.size<500){toast('⚠️ Запись слишком короткая');return;}
+      toast('⏫ Отправка голосового...');
+      // Upload as audio file
+      const fakeFile=new File([blob],'voice_'+Date.now()+'.webm',{type:'audio/webm'});
+      await hFiles([fakeFile]);
+    };
+    _mediaRec.start();
+    btn.textContent='⏹️'; btn.classList.add('recording');
+    toast('🎙️ Запись... нажми ещё раз чтобы остановить');
+  }catch(e){
+    toast('⚠️ Нет доступа к микрофону');
+  }
+};
+
+// ═══════════════════════════════════════════
+// DM TABS (mobile) + UNREAD BLINK (desktop)
+// ═══════════════════════════════════════════
+let _dmTabs={}; // {id: {u, unread}}
+
+function addDMTab(id, u){
+  if(_dmTabs[id]) return;
+  _dmTabs[id]={u, unread:false};
+  renderDMTabs();
+}
+
+function removeDMTab(id){
+  delete _dmTabs[id];
+  renderDMTabs();
+}
+
+function markDMTabUnread(id){
+  if(_dmTabs[id]) _dmTabs[id].unread=true;
+  renderDMTabs();
+  // Also blink in desktop sidebar
+  const el=g('chi-'+id);
+  if(el) el.classList.add('unread-dm');
+}
+
+function markDMTabRead(id){
+  if(_dmTabs[id]) _dmTabs[id].unread=false;
+  renderDMTabs();
+  const el=g('chi-'+id);
+  if(el) el.classList.remove('unread-dm');
+}
+
+function renderDMTabs(){
+  const bar=g('dm-tabs'); if(!bar) return;
+  // Only show on mobile
+  if(window.innerWidth>660){bar.classList.remove('has-tabs');return;}
+  const ids=Object.keys(_dmTabs);
+  if(!ids.length){bar.classList.remove('has-tabs');return;}
+  bar.innerHTML='';
+  bar.classList.add('has-tabs');
+  document.body.classList.add('dm-tabs-on');
+  ids.forEach(id=>{
+    const {u,unread}=_dmTabs[id];
+    const active=curCh===id && curType==='dm';
+    const gClass=u.gender==='f'?'uav-f':'uav-m';
+    const tab=document.createElement('div');
+    tab.className='dm-tab'+(active?' active':'')+(unread&&!active?' unread':'');
+    tab.innerHTML=`<div class="tab-av ${gClass}">${ini(u.name)}</div>${esc(u.name)}<span class="tab-close" onclick="event.stopPropagation();closeDMTab('${id}')">✕</span>`;
+    tab.onclick=()=>oDMCh(id,u);
+    bar.appendChild(tab);
+  });
+}
+
+window.closeDMTab=(id)=>{
+  if(curCh===id && curType==='dm') closeDMView();
+  removeDMTab(id);
+};
+
+// Close DM view — go back to general (mobile convenience)
+window.closeDMView=()=>{
+  if(curType!=='dm') return;
+  const id=curCh;
+  markDMTabRead(id);
+  openGen();
+  renderDMTabs();
+};
+
+// Override oDMCh to also add tab
+const _origODMCh=window.oDMCh;
+function oDMCh(id,u){
+  addDMTab(id,u);
+  markDMTabRead(id);
+  openCh(id,'dm',u.name,'💬','Личные сообщения');
+  // Show close-dm btn on mobile
+  const cb=g('close-dm-btn');
+  if(cb) cb.style.display=window.innerWidth<=660?'':'none';
+  renderDMTabs();
+}
+
 // LIGHTBOX
 window.openLB=url=>{g('lbi').src=url;g('lb').style.display='flex';};
 window.closeLB=()=>{g('lb').style.display='none';};
 </script>
+<div id="dm-tabs"></div>
 </body>
 </html>
