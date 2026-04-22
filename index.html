@@ -224,6 +224,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .up-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 4px 6px;border-bottom:1px solid var(--border);}
 .up-close-btn{width:28px;height:28px;border:none;background:var(--bg3);border-radius:7px;color:var(--txt2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
 .up-close-btn:hover{background:var(--red);color:#fff;}
+@media(max-width:660px){.up-close-btn{display:none!important;}}
 .hbg{display:none;}
 .hidden{display:none!important;}
 
@@ -609,15 +610,15 @@ function openCh(id,type,title,icon,sub){
   if(clrBtn) clrBtn.style.display='none';
   if(delDmBtn) delDmBtn.style.display='none';
   if(leaveBtn) leaveBtn.style.display = (type==='room') ? '' : 'none';
-  if(type==='general'&&isSU()&&clrBtn) clrBtn.style.display='';
-  if(type==='dm'&&isSU()&&delDmBtn) delDmBtn.style.display='';
-  if(type==='room'&&isSU()&&clrBtn) clrBtn.style.display='';
-  if(type==='room'&&clrBtn){
-    get(ref(db,`rooms/${id}`)).then(s=>{
-      const r=s.val();
-      if(r&&(isSU()||r.createdBy===me.uid)) clrBtn.style.display='';
-    });
-  }
+  // Visibility rules:
+  // general — SU only
+  // room (any) — SU only
+  // dm — participant (uid in channel id) or SU
+  if(type==='general' && isSU() && clrBtn) clrBtn.style.display='';
+  if(type==='room' && isSU() && clrBtn) clrBtn.style.display='';
+  const isDmParticipant = type==='dm' && me && id && id.includes(me.uid);
+  if(type==='dm' && (isSU()||isDmParticipant) && clrBtn) clrBtn.style.display='';
+  if(type==='dm' && (isSU()||isDmParticipant) && delDmBtn) delDmBtn.style.display='';
   if(window.innerWidth<=660) g('sb').classList.remove('open');
 }
 window.openGen=()=>{
@@ -630,8 +631,11 @@ window.openGen=()=>{
 window.clearHistory=async()=>{
   if(!curType) return;
   const isSuperU = isSU();
-  const isRoomOwner = curType==='room';
-  if(!isSuperU && !isRoomOwner){toast('⛔ Нет прав');return;}
+  const isDmParticipant = curType==='dm' && me && curCh && curCh.includes(me.uid);
+  // General and rooms — SU only; DM — participant or SU
+  if(curType==='general' && !isSuperU){toast('⛔ Нет прав');return;}
+  if(curType==='room' && !isSuperU){toast('⛔ Нет прав');return;}
+  if(curType==='dm' && !isSuperU && !isDmParticipant){toast('⛔ Нет прав');return;}
   if(!confirm('Удалить всю историю сообщений в этом чате?')) return;
   const path=curType==='general'?'messages/general':curType==='room'?`messages/rooms/${curCh}`:`messages/dms/${curCh}`;
   await remove(ref(db,path));
@@ -1110,7 +1114,8 @@ window.delUser=async(e,uid,name)=>{
 
 // SU: Delete entire DM conversation
 window.delDMChat=async()=>{
-  if(!isSU()){toast('⛔ Нет прав');return;}
+  const isDmParticipant = curType==='dm' && me && curCh && curCh.includes(me.uid);
+  if(!isSU()&&!isDmParticipant){toast('⛔ Нет прав');return;}
   if(curType!=='dm'){toast('⚠️ Не в личном чате');return;}
   if(!confirm('Удалить весь приватный чат и историю сообщений?'))return;
   await remove(ref(db,`messages/dms/${curCh}`));
@@ -1125,7 +1130,8 @@ window.delDMChat=async()=>{
 
 // SU: Clear DM history (keep conversation, remove messages)
 window.clearDMHistory=async()=>{
-  if(!isSU()){toast('⛔ Нет прав');return;}
+  const isDmParticipant = curType==='dm' && me && curCh && curCh.includes(me.uid);
+  if(!isSU()&&!isDmParticipant){toast('⛔ Нет прав');return;}
   if(curType!=='dm'){toast('⚠️ Не в личном чате');return;}
   if(!confirm('Очистить историю сообщений в этом чате?'))return;
   await remove(ref(db,`messages/dms/${curCh}`));
