@@ -841,7 +841,7 @@ function renderUsersList(usersMap, filterUids){
   const l=g('ul'); l.innerHTML='';
   let list=Object.values(usersMap).filter(u=>u.name.toLowerCase()!==SUPERUSER.login);
   if(filterUids) list=list.filter(u=>filterUids.includes(u.uid));
-  else list=list.filter(u=>u.online); // general: online only
+  else if(!isSU()) list=list.filter(u=>u.online); // general: online only (SU sees everyone)
   if(!list.length){l.innerHTML='<div class="ni">Никого нет</div>';return;}
   list.forEach(u=>{
     const gClass=u.gender==='f'?'uav-f':'uav-m';
@@ -858,15 +858,10 @@ function renderUsersList(usersMap, filterUids){
 }
 
 function ldUsers(){
-  if(_usersUnsub){_usersUnsub();_usersUnsub=null;}
+  if(_usersUnsub){try{_usersUnsub();}catch(e){} _usersUnsub=null;}
   const type=curType||'general';
-  if(type==='general'){
-    // Show all online users
-    _usersUnsub=onValue(ref(db,'users'),snap=>{
-      renderUsersList(snap.val()||{}, null);
-    });
-  } else if(type==='room'){
-    // Show only users present in this room
+  if(type==='room' && curCh){
+    // Room: show only users present in this specific room
     _usersUnsub=onValue(ref(db,`presence/rooms/${curCh}`),presSnap=>{
       const presMap=presSnap.val()||{};
       const uids=Object.keys(presMap).filter(uid=>presMap[uid]===true);
@@ -874,9 +869,14 @@ function ldUsers(){
         renderUsersList(usersSnap.val()||{}, uids);
       });
     });
-  } else {
-    // DM: show just the two participants
+  } else if(type==='dm'){
+    // DM: no public user list
     const l=g('ul'); l.innerHTML='<div class="ni">Личный чат</div>';
+  } else {
+    // General (and default): all online users
+    _usersUnsub=onValue(ref(db,'users'),snap=>{
+      renderUsersList(snap.val()||{}, null);
+    });
   }
 }
 
