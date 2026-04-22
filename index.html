@@ -206,7 +206,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 
 /* ── GENDER BUTTONS ── */
 .gender-btn{flex:1;padding:8px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--txt2);border-radius:var(--r2);font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;}
-.gender-btn.on{border-color:var(--acc);background:var(--acc-l);color:var(--acc);font-weight:700;}
+.gender-btn.on#gb-m{border-color:#2563eb;background:#eff6ff;color:#2563eb;font-weight:700;}
+.gender-btn.on#gb-f{border-color:var(--acc);background:var(--acc-l);color:var(--acc);font-weight:700;}
 /* ── GENDER AVATARS ── */
 .mava-m{background:linear-gradient(135deg,#93c5fd,#3b82f6)!important;color:#fff!important;}
 .mava-f{background:linear-gradient(135deg,#fca5a5,#ef4444)!important;color:#fff!important;}
@@ -653,7 +654,9 @@ window.send=async()=>{
   await push(ref(db,path),data);
   const prev=txt||'📎 файл';
   if(curType==='general'){const p=g('pg');if(p)p.textContent=prev;}
-  else if(curType==='room')set(ref(db,`rooms/${curCh}/lastMessage`),prev);
+  else if(curType==='room'){
+    get(ref(db,`rooms/${curCh}/hasPassword`)).then(s=>{ if(!s.val()) set(ref(db,`rooms/${curCh}/lastMessage`),prev); });
+  }
   // DM lastMessage intentionally not saved — privacy
   g('mi').value=''; g('mi').style.height='';
   clrTyp();
@@ -723,7 +726,7 @@ function ldRooms(){
       const el=document.createElement('div'); el.className='ci'; el.id='chi-'+room.id;
       el.innerHTML=`<div class="cico">${room.hasPassword?'🔒':'#️⃣'}</div>
         <div class="ci-inf"><div class="cn">${esc(room.name)}</div>
-        <div class="cp">${room.lastMessage?esc(room.lastMessage):'Нет сообщений'}</div></div>`
+        <div class="cp">${room.hasPassword?'Приватная комната':room.lastMessage?esc(room.lastMessage):'Нет сообщений'}</div></div>`
         +(canDel?`<button class="del-btn" title="Удалить комнату" onclick="delRoom(event,'${room.id}','${esc(room.name)}')">🗑</button>`:'');
       el.onclick=(e)=>{ if(!e.target.closest('.del-btn')) joinRoom(room); };
       l.appendChild(el);
