@@ -1093,49 +1093,55 @@ function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Личные сообщени
 // USERS — simple, reliable, no presence complexity
 let _uUnsubGeneral = null;
 let _uUnsubRoom = null;
-let _uSoundRef = null;
 let _onlineState = {};
 let _onlineSeeded = false;
+let _usersCache = {}; // always-fresh local copy of users map
 
 function initUsersListener(){
   if(_uUnsubGeneral) _uUnsubGeneral();
-  if(_uSoundRef){ try{ off(_uSoundRef); }catch(e){} _uSoundRef=null; }
   _onlineState = {};
   _onlineSeeded = false;
+  _usersCache = {};
+
+  // Single onValue listener — covers both UI refresh AND sound detection
   _uUnsubGeneral = onValue(ref(db,'users'), snap=>{
     const users = snap.val()||{};
+
     if(!_onlineSeeded){
-      const seeded={};
+      // First snapshot: seed state silently, no sounds
       Object.values(users).forEach(u=>{
         if(!u||!u.uid||!u.name) return;
         if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
-        seeded[u.uid]=!!u.online;
+        _onlineState[u.uid]=!!u.online;
       });
-      _onlineState=seeded;
-      _onlineSeeded=true;
-    }
-    // Always refresh panel if in general view; sounds fire on all channels
-    if(!curType || curType === 'general') renderUList(users, null, false);
-    if(curType === 'room' && curCh) renderUList(users, curCh, true);
-  });
-  _uSoundRef = ref(db,'users');
-  onChildChanged(_uSoundRef, snap=>{
-    const u=snap.val();
-    if(!u||!u.uid||!u.name) return;
-    if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
-    if(!_onlineSeeded){
-      _onlineState[u.uid]=!!u.online;
+      _usersCache = users;
+      _onlineSeeded = true;
+      // Initial render
+      if(!curType || curType==='general') renderUList(users, null, false);
+      if(curType==='room' && curCh) renderUList(users, curCh, true);
       return;
     }
-    const prev=!!_onlineState[u.uid];
-    const next=!!u.online;
-    if(prev!==next){
-      if(next) playJoinSound();
-      else playLeaveSound();
-    }
-    _onlineState[u.uid]=next;
-    if(!curType || curType==='general') get(ref(db,'users')).then(s=>renderUList(s.val()||{},null,false));
-    if(curType==='room' && curCh) get(ref(db,'users')).then(s=>renderUList(s.val()||{},curCh,true));
+
+    // Subsequent snapshots: detect join/leave changes and play sounds
+    Object.values(users).forEach(u=>{
+      if(!u||!u.uid||!u.name) return;
+      if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
+      const prev = !!_onlineState[u.uid];
+      const next = !!u.online;
+      if(prev !== next){
+        // Small delay to let Firebase settle onDisconnect writes
+        setTimeout(()=>{
+          if(next) playJoinSound();
+          else playLeaveSound();
+        }, 300);
+      }
+      _onlineState[u.uid] = next;
+    });
+    _usersCache = users;
+
+    // Always re-render panel with fresh data — no extra get() needed
+    if(!curType || curType==='general') renderUList(users, null, false);
+    if(curType==='room' && curCh) renderUList(users, curCh, true);
   });
 }
 
@@ -1152,17 +1158,23 @@ function ldUsers(){
   if(type === 'dm'){
     l.innerHTML = '<div class="ni">Личный чат</div>';
   } else if(type === 'room' && ch){
-    // For rooms: show users whose presence is recorded in this room
-    l.innerHTML = '<div class="ni">Загрузка...</div>';
+    // Instant render from cache first
+    if(Object.keys(_usersCache).length) renderUList(_usersCache, ch, true);
+    else l.innerHTML = '<div class="ni">Загрузка...</div>';
+    // Live updates for room
     _uUnsubRoom = onValue(ref(db,'users'), snap=>{
       const allU = snap.val()||{};
-      // Filter to users who have entered this room (presence flag)
+      _usersCache = allU;
       renderUList(allU, ch, true);
     });
   } else {
-    // General: handled by initUsersListener (live, persistent)
-    // Trigger an immediate render from current DB state
-    get(ref(db,'users')).then(snap=>{ renderUList(snap.val()||{}, null, false); });
+    // General: initUsersListener handles live updates.
+    // Render immediately from cache if available, otherwise fetch once.
+    if(Object.keys(_usersCache).length){
+      renderUList(_usersCache, null, false);
+    } else {
+      get(ref(db,'users')).then(snap=>{ renderUList(snap.val()||{}, null, false); });
+    }
   }
 }
 
@@ -1206,8 +1218,19 @@ async function forceOffline(){
   try{ await remove(ref(db,`users/${me.uid}/inRoom`)); }catch(e){}
   try{ await set(ref(db,`users/${me.uid}/online`),false); }catch(e){}
 }
-window.addEventListener('pagehide',()=>{ forceOffline(); });
-window.addEventListener('beforeunload',()=>{ forceOffline(); });
+function _syncOffline(){ if(me && !isSU()) forceOffline().catch(()=>{}); }
+window.addEventListener('pagehide', _syncOffline);
+window.addEventListener('beforeunload', _syncOffline);
+// Re-mark online when user returns to tab; mark offline when hidden
+document.addEventListener('visibilitychange', ()=>{
+  if(!me || isSU()) return;
+  if(document.visibilityState === 'hidden'){
+    forceOffline().catch(()=>{});
+  } else {
+    set(ref(db,`users/${me.uid}/online`), true).catch(()=>{});
+    onDisconnect(ref(db,`users/${me.uid}/online`)).set(false);
+  }
+});
 
 
 // ── SOUND NOTIFICATION ──
