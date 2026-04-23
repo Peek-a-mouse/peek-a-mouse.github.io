@@ -529,16 +529,31 @@ window.addEventListener('load',function(){
 });
 </script>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged, updateProfile
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
-  getDatabase, ref, push, set, onValue, off, onChildAdded,
-  serverTimestamp, query, orderByChild, limitToLast, get, remove, onDisconnect
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+const initializeApp = cfg => firebase.initializeApp(cfg);
+const getAuth = app => firebase.auth(app);
+const createUserWithEmailAndPassword = (auth,email,pass) => auth.createUserWithEmailAndPassword(email,pass);
+const signInWithEmailAndPassword = (auth,email,pass) => auth.signInWithEmailAndPassword(email,pass);
+const signOut = auth => auth.signOut();
+const onAuthStateChanged = (auth,cb) => auth.onAuthStateChanged(cb);
+const updateProfile = (user,data) => user.updateProfile(data);
+const getDatabase = app => firebase.database(app);
+const ref = (db,path) => db.ref(path);
+const push = (r,val) => val===undefined ? r.push() : r.push(val);
+const set = (r,val) => r.set(val);
+const onValue = (r,cb) => r.on('value',snap=>cb(snap));
+const off = r => r.off();
+const onChildAdded = (r,cb) => r.on('child_added',snap=>cb(snap));
+const serverTimestamp = () => firebase.database.ServerValue.TIMESTAMP;
+const query = (r,...ops) => ops.reduce((acc,op)=>op(acc),r);
+const orderByChild = key => r => r.orderByChild(key);
+const limitToLast = n => r => r.limitToLast(n);
+const get = r => r.get();
+const remove = r => r.remove();
+const onDisconnect = r => r.onDisconnect();
 
 // ╔═══════════════════════════════════════════╗
 // ║  ВСТАВЬТЕ ДАННЫЕ ИЗ FIREBASE CONSOLE     ║
