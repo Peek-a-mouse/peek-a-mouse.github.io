@@ -553,7 +553,6 @@ const limitToLast = n => r => r.limitToLast(n);
 const get = r => r.get();
 const remove = r => r.remove();
 const onDisconnect = r => r.onDisconnect();
-const onChildChanged = (r,cb) => r.on('child_changed',snap=>cb(snap));
 
 // ╔═══════════════════════════════════════════╗
 // ║  ВСТАВЬТЕ ДАННЫЕ ИЗ FIREBASE CONSOLE     ║
@@ -578,8 +577,6 @@ window.__authLoadError='';
 let me=null, curCh=null, curType=null, msgsRef=null;
 let files=[], tTmo=null, pRoom=null;
 let regGender='m'; // default male
-let _dmWatchers={};
-let _dmSeenTs={};
 window.selGender=g2=>{
   regGender=g2;
   document.querySelectorAll('.gender-btn').forEach(b=>b.classList.remove('on'));
@@ -704,7 +701,7 @@ window.doIn=async()=>{
 
 // LOGOUT
 window.doOut=async()=>{
-  await leaveRoomPresence();
+  leaveRoomPresence();
   if(me && !isSU()) await remove(ref(db,`users/${me.uid}/inRoom`));
   if(me) await set(ref(db,`users/${me.uid}/online`),false);
   await signOut(auth);
@@ -817,9 +814,9 @@ function openCh(id,type,title,icon,sub){
   if(type==='dm') markDMTabRead(id);
   renderDMTabs();
 }
-window.openGen=async()=>{
-  await leaveRoomPresence();
-  if(me && !isSU()) await remove(ref(db,`users/${me.uid}/inRoom`));
+window.openGen=()=>{
+  leaveRoomPresence();
+  if(me && !isSU()) remove(ref(db,`users/${me.uid}/inRoom`));
   openCh('general','general','Общий чат','🌐','Для всех пользователей');
 };
 
@@ -997,25 +994,23 @@ function joinRoom(room){
   if(room.hasPassword && !isSU()){pRoom=room;g('epi').value='';g('epe').textContent='';oM('m-rp');}
   else enRoom(room);
 }
-window.chkRP=async()=>{
+window.chkRP=()=>{
   if(g('epi').value!==pRoom.password)return g('epe').textContent='Неверный пароль';
-  cM('m-rp'); await enRoom(pRoom);
+  cM('m-rp'); enRoom(pRoom);
 };
-async function enRoom(room){
-  await leaveRoomPresence();
+function enRoom(room){
+  leaveRoomPresence();
   openCh(room.id,'room',(room.hasPassword?'🔒 ':'# ')+room.name,room.hasPassword?'🔒':'#️⃣',room.hasPassword?'Приватная комната':'Публичная комната');
   if(!isSU()){
-    await set(ref(db,`users/${me.uid}/inRoom`), room.id);
+    set(ref(db,`users/${me.uid}/inRoom`), room.id);
     onDisconnect(ref(db,`users/${me.uid}/inRoom`)).remove();
   }
 }
 
-async function leaveRoomPresence(){
-  if(me && !isSU()){
-    if(curType==='room' && curCh){
-      await remove(ref(db,`presence/rooms/${curCh}/${me.uid}`));
-    }
-    await remove(ref(db,`users/${me.uid}/inRoom`));
+function leaveRoomPresence(){
+  if(curType==='room' && curCh && me && !isSU()){
+    remove(ref(db,`presence/rooms/${curCh}/${me.uid}`));
+    remove(ref(db,`users/${me.uid}/inRoom`));
   }
 }
 
@@ -1033,37 +1028,11 @@ function ldDMs(){
         el.innerHTML=`<div class="cico av ${gClass}">${ini(u.name)}</div>
           <div class="ci-inf"><div class="cn">${esc(u.name)}</div>
           <div class="cp">Личное сообщение</div></div>`;
-        if(_dmTabs[id] && _dmTabs[id].unread) el.classList.add('unread-dm');
         el.onclick=()=>oDMCh(id,u);
         l.appendChild(el);
-        watchDMConversation(id,u);
       });
     });
   });
-}
-
-function watchDMConversation(id,u){
-  if(_dmWatchers[id]) return;
-  const dmRef=query(ref(db,`messages/dms/${id}`),orderByChild('ts'),limitToLast(1));
-  let initialized=false;
-  const handler=snap=>{
-    const m=snap.val();
-    if(!m) return;
-    if(!initialized){
-      _dmSeenTs[id]=m.ts||0;
-      initialized=true;
-      return;
-    }
-    if((m.ts||0)<=(_dmSeenTs[id]||0)) return;
-    _dmSeenTs[id]=m.ts||0;
-    if(m.uid===me?.uid) return;
-    if(curType==='dm' && curCh===id) return;
-    addDMTab(id,u);
-    markDMTabUnread(id);
-    playDMSound();
-  };
-  onChildAdded(dmRef,handler);
-  _dmWatchers[id]={ref:dmRef,handler};
 }
 window.openDS=()=>{g('dmq').value='';g('dmr').innerHTML='';oM('m-dm');};
 window.srchU=()=>{
@@ -1093,49 +1062,25 @@ function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Личные сообщени
 // USERS — simple, reliable, no presence complexity
 let _uUnsubGeneral = null;
 let _uUnsubRoom = null;
-let _uSoundRef = null;
-let _onlineState = {};
-let _onlineSeeded = false;
 
 function initUsersListener(){
   if(_uUnsubGeneral) _uUnsubGeneral();
-  if(_uSoundRef){ try{ off(_uSoundRef); }catch(e){} _uSoundRef=null; }
-  _onlineState = {};
-  _onlineSeeded = false;
+  let _prevOnlineUids = null;
   _uUnsubGeneral = onValue(ref(db,'users'), snap=>{
     const users = snap.val()||{};
-    if(!_onlineSeeded){
-      const seeded={};
-      Object.values(users).forEach(u=>{
-        if(!u||!u.uid||!u.name) return;
-        if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
-        seeded[u.uid]=!!u.online;
-      });
-      _onlineState=seeded;
-      _onlineSeeded=true;
+    // Detect join/leave for sounds
+    const currentOnline = new Set(
+      Object.values(users)
+        .filter(u=>u.online && u.name.toLowerCase()!==SUPERUSER.login && u.uid!==me?.uid)
+        .map(u=>u.uid)
+    );
+    if(_prevOnlineUids !== null){
+      currentOnline.forEach(uid=>{ if(!_prevOnlineUids.has(uid)) playJoinSound(); });
+      _prevOnlineUids.forEach(uid=>{ if(!currentOnline.has(uid)) playLeaveSound(); });
     }
+    _prevOnlineUids = currentOnline;
     // Always refresh panel if in general view; sounds fire on all channels
     if(!curType || curType === 'general') renderUList(users, null, false);
-    if(curType === 'room' && curCh) renderUList(users, curCh, true);
-  });
-  _uSoundRef = ref(db,'users');
-  onChildChanged(_uSoundRef, snap=>{
-    const u=snap.val();
-    if(!u||!u.uid||!u.name) return;
-    if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
-    if(!_onlineSeeded){
-      _onlineState[u.uid]=!!u.online;
-      return;
-    }
-    const prev=!!_onlineState[u.uid];
-    const next=!!u.online;
-    if(prev!==next){
-      if(next) playJoinSound();
-      else playLeaveSound();
-    }
-    _onlineState[u.uid]=next;
-    if(!curType || curType==='general') get(ref(db,'users')).then(s=>renderUList(s.val()||{},null,false));
-    if(curType==='room' && curCh) get(ref(db,'users')).then(s=>renderUList(s.val()||{},curCh,true));
   });
 }
 
@@ -1198,17 +1143,6 @@ function renderUList(usersMap, roomId, isRoom){
 
 function refreshUsers(){ ldUsers(); }
 
-async function forceOffline(){
-  if(!me || isSU()) return;
-  try{
-    if(curType==='room' && curCh) await remove(ref(db,`presence/rooms/${curCh}/${me.uid}`));
-  }catch(e){}
-  try{ await remove(ref(db,`users/${me.uid}/inRoom`)); }catch(e){}
-  try{ await set(ref(db,`users/${me.uid}/online`),false); }catch(e){}
-}
-window.addEventListener('pagehide',()=>{ forceOffline(); });
-window.addEventListener('beforeunload',()=>{ forceOffline(); });
-
 
 // ── SOUND NOTIFICATION ──
 let dmSoundOn = localStorage ? (localStorage.getItem('dmSound')!=='off') : true;
@@ -1232,24 +1166,13 @@ function getACtx(){
 // Unlock AudioContext on first user interaction (required by browsers)
 function unlockAudio(){
   try{ getACtx(); } catch(e){}
-  document.removeEventListener('pointerdown', unlockAudio);
-  document.removeEventListener('mousedown', unlockAudio);
   document.removeEventListener('click', unlockAudio);
-  document.removeEventListener('touchstart', unlockAudio);
   document.removeEventListener('touchend', unlockAudio);
   document.removeEventListener('keydown', unlockAudio);
 }
-document.addEventListener('pointerdown', unlockAudio);
-document.addEventListener('mousedown', unlockAudio);
 document.addEventListener('click', unlockAudio);
-document.addEventListener('touchstart', unlockAudio);
 document.addEventListener('touchend', unlockAudio);
 document.addEventListener('keydown', unlockAudio);
-document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'){
-    try{ getACtx(); }catch(e){}
-  }
-});
 
 // DM sound — louder double-ding
 function playDMSound(){
