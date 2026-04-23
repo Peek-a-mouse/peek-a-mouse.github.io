@@ -64,6 +64,34 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .div::before,.div::after{content:'';flex:1;height:1px;background:var(--border);}
 #auth,.aw,.ac,.tabs,.tab,.btn,.gender-btn,.f input{-webkit-app-region:no-drag;}
 .ac,.tabs,.tab,.btn,.gender-btn,.f input{position:relative;z-index:5;pointer-events:auto;}
+@media(min-width:661px){
+  html,body{overflow:auto;}
+  body{display:block;min-height:100vh;}
+  #auth{
+    position:absolute;
+    inset:0;
+    min-height:100vh;
+    align-items:flex-start;
+    overflow:auto;
+    padding:28px 0 40px;
+    background:#fff7fb;
+  }
+  .aw{
+    max-width:460px;
+    margin:0 auto;
+    padding:24px 16px 40px;
+  }
+  .ab{
+    margin-bottom:18px;
+  }
+  .ac{
+    background:#ffffff;
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+    box-shadow:0 10px 30px rgba(0,0,0,0.10);
+    border:1px solid rgba(0,0,0,0.08);
+  }
+}
 
 /* ── LAYOUT ── */
 #app{display:flex;height:100vh;overflow:hidden;}
@@ -442,6 +470,65 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 
 <div id="toast"></div>
 
+<script>
+window.__authReady=false;
+window.__authLoadError='';
+window.g=id=>document.getElementById(id);
+window.swTab=window.swTab||function(t){
+  ['in','up'].forEach(function(x){
+    var el=window.g('t-'+x);
+    if(el) el.classList.toggle('hidden',x!==t);
+  });
+  var tabs=document.querySelectorAll('.tab');
+  tabs.forEach(function(b,i){
+    b.classList.toggle('on',i===(t==='in'?0:1));
+  });
+};
+window.showAuthDiag=function(msg){
+  var loginErr=window.g('le');
+  var regErr=window.g('re');
+  if(loginErr) loginErr.textContent=msg;
+  if(regErr) regErr.textContent=msg;
+};
+window.doIn=window.doIn||function(){
+  if(!window.__authReady){
+    window.showAuthDiag(window.__authLoadError||'Десктопная версия не загрузила модуль входа');
+  }
+};
+window.doUp=window.doUp||function(){
+  if(!window.__authReady){
+    window.showAuthDiag(window.__authLoadError||'Десктопная версия не загрузила модуль регистрации');
+  }
+};
+(function bindAuthFallback(){
+  function bindClick(id,fn){
+    var el=window.g(id);
+    if(!el||el.dataset.fallbackBound==='1') return;
+    el.addEventListener('click',function(e){ e.preventDefault(); fn(); });
+    el.dataset.fallbackBound='1';
+  }
+  bindClick('tab-in',function(){ window.swTab('in'); });
+  bindClick('tab-up',function(){ window.swTab('up'); });
+  bindClick('btn-in',function(){ window.doIn(); });
+  bindClick('btn-up',function(){ window.doUp(); });
+})();
+window.addEventListener('error',function(e){
+  var text=(e&&e.message?String(e.message):'');
+  if(text && /firebase|import|module/i.test(text)){
+    window.__authLoadError='Ошибка загрузки модуля входа: '+text;
+    window.showAuthDiag(window.__authLoadError);
+  }
+});
+window.addEventListener('load',function(){
+  setTimeout(function(){
+    if(!window.__authReady){
+      window.__authLoadError=window.__authLoadError||'Десктопная версия блокирует загрузку Firebase-модуля';
+      window.showAuthDiag(window.__authLoadError);
+    }
+  },1500);
+});
+</script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
@@ -470,6 +557,8 @@ const cfg = {
 const fbApp = initializeApp(cfg);
 const auth  = getAuth(fbApp);
 const db    = getDatabase(fbApp);
+window.__authReady=true;
+window.__authLoadError='';
 
 let me=null, curCh=null, curType=null, msgsRef=null;
 let files=[], tTmo=null, pRoom=null;
