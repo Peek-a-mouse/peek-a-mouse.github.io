@@ -298,13 +298,13 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
     </div>
     <div class="ac">
       <div class="tabs">
-        <button class="tab on" onclick="swTab('in')">Войти</button>
-        <button class="tab" onclick="swTab('up')">Регистрация</button>
+        <button id="tab-in" type="button" class="tab on" onclick="swTab('in')">Войти</button>
+        <button id="tab-up" type="button" class="tab" onclick="swTab('up')">Регистрация</button>
       </div>
       <div id="t-in">
         <div class="f"><label>Логин</label><input id="li" type="text" placeholder="ваш_логин" autocomplete="username"></div>
         <div class="f"><label>Пароль</label><input id="lp" type="password" placeholder="••••••••" autocomplete="current-password"></div>
-        <button class="btn" onclick="doIn()">Войти</button>
+        <button id="btn-in" type="button" class="btn" onclick="doIn()">Войти</button>
         <div class="err" id="le"></div>
       </div>
       <div id="t-up" class="hidden">
@@ -317,7 +317,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
             <button type="button" class="gender-btn" id="gb-f" onclick="selGender('f')">♀ Женский</button>
           </div>
         </div>
-        <button class="btn" onclick="doUp()">Создать аккаунт</button>
+        <button id="btn-up" type="button" class="btn" onclick="doUp()">Создать аккаунт</button>
         <div class="note">Только логин и пароль — больше ничего не нужно</div>
         <div class="err" id="re"></div>
       </div>
@@ -509,6 +509,31 @@ window.swTab=t=>{
   ['in','up'].forEach(x=>{ g('t-'+x).classList.toggle('hidden',x!==t); });
   document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',i===(t==='in'?0:1)));
 };
+
+function bindAuthUI(){
+  const bindClick=(id,fn)=>{
+    const el=g(id);
+    if(!el||el.dataset.bound==='1') return;
+    el.addEventListener('click',e=>{ e.preventDefault(); fn(); });
+    el.dataset.bound='1';
+  };
+  bindClick('tab-in',()=>swTab('in'));
+  bindClick('tab-up',()=>swTab('up'));
+  bindClick('btn-in',()=>doIn());
+  bindClick('btn-up',()=>doUp());
+  [['li',doIn],['lp',doIn],['ri',doUp],['rp',doUp]].forEach(([id,fn])=>{
+    const el=g(id);
+    if(!el||el.dataset.enterBound==='1') return;
+    el.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        fn();
+      }
+    });
+    el.dataset.enterBound='1';
+  });
+}
+bindAuthUI();
 
 // REGISTER
 window.doUp=async()=>{
