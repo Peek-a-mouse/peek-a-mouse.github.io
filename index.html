@@ -1090,53 +1090,59 @@ function stDM(u){
 }
 function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Личные сообщения');}
 
-// USERS — simple, reliable, no presence complexity
+// ── USERS — simple, reliable, no presence complexity
 let _uUnsubGeneral = null;
 let _uUnsubRoom = null;
 let _uSoundRef = null;
+let _uSoundCb = null;
 let _onlineState = {};
 let _onlineSeeded = false;
 
 function initUsersListener(){
-  if(_uUnsubGeneral) _uUnsubGeneral();
-  if(_uSoundRef){ try{ off(_uSoundRef); }catch(e){} _uSoundRef=null; }
+  // Unsubscribe previous general listener
+  if(_uUnsubGeneral){ try{ _uUnsubGeneral(); }catch(e){} _uUnsubGeneral=null; }
+  // Unsubscribe previous sound listener
+  if(_uSoundRef && _uSoundCb){ try{ _uSoundRef.off('child_changed',_uSoundCb); }catch(e){} _uSoundRef=null; _uSoundCb=null; }
   _onlineState = {};
   _onlineSeeded = false;
-  _uUnsubGeneral = onValue(ref(db,'users'), snap=>{
+
+  const usersRef = ref(db,'users');
+
+  // Seed initial online state without playing sounds, then set up live onValue
+  get(usersRef).then(snap=>{
     const users = snap.val()||{};
-    if(!_onlineSeeded){
-      const seeded={};
-      Object.values(users).forEach(u=>{
-        if(!u||!u.uid||!u.name) return;
-        if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
-        seeded[u.uid]=!!u.online;
-      });
-      _onlineState=seeded;
-      _onlineSeeded=true;
-    }
-    // Always refresh panel if in general view; sounds fire on all channels
+    Object.values(users).forEach(u=>{
+      if(!u||!u.uid||!u.name) return;
+      if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
+      _onlineState[u.uid]=!!u.online;
+    });
+    _onlineSeeded=true;
+  });
+
+  // Live updates: re-render on any user change
+  const valueCb = snap=>{
+    const users = snap.val()||{};
     if(!curType || curType === 'general') renderUList(users, null, false);
     if(curType === 'room' && curCh) renderUList(users, curCh, true);
-  });
-  _uSoundRef = ref(db,'users');
-  onChildChanged(_uSoundRef, snap=>{
+  };
+  usersRef.on('value', valueCb);
+  _uUnsubGeneral = ()=>{ usersRef.off('value', valueCb); };
+
+  // Sound notifications: only after seeding is done
+  _uSoundRef = usersRef;
+  _uSoundCb = snap=>{
     const u=snap.val();
     if(!u||!u.uid||!u.name) return;
     if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
-    if(!_onlineSeeded){
-      _onlineState[u.uid]=!!u.online;
-      return;
-    }
     const prev=!!_onlineState[u.uid];
     const next=!!u.online;
-    if(prev!==next){
+    if(_onlineSeeded && prev!==next){
       if(next) playJoinSound();
       else playLeaveSound();
     }
     _onlineState[u.uid]=next;
-    if(!curType || curType==='general') get(ref(db,'users')).then(s=>renderUList(s.val()||{},null,false));
-    if(curType==='room' && curCh) get(ref(db,'users')).then(s=>renderUList(s.val()||{},curCh,true));
-  });
+  };
+  usersRef.on('child_changed', _uSoundCb);
 }
 
 // Called every time user switches channel
