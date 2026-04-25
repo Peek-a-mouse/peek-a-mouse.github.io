@@ -103,7 +103,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .logo b{color:var(--acc);}
 .icb{width:30px;height:30px;border:1.5px solid var(--border);background:var(--bg);border-radius:7px;color:var(--txt2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;flex-shrink:0;}
 .icb:hover{background:var(--acc-l);border-color:var(--acc);color:var(--acc);}
-.sb-sc{flex:1;overflow-y:auto;padding-bottom:8px;}
+.sb-sc{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:8px;scroll-behavior:smooth;}
 .sl{padding:12px 14px 4px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt3);display:flex;align-items:center;justify-content:space-between;}
 .ci{display:flex;align-items:center;gap:9px;padding:7px 10px;margin:0 5px;border-radius:var(--r2);cursor:pointer;transition:background .15s;}
 .ci:hover{background:var(--bg3);}
@@ -175,7 +175,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 @keyframes tb{0%,60%,100%{transform:none}30%{transform:translateY(-3px)}}
 
 /* ── USERS PANEL ── */
-#up{width:196px;min-width:160px;max-width:340px;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;padding:12px 8px;display:none;position:relative;flex-shrink:0;}
+#up{width:196px;min-width:160px;max-width:340px;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;overflow-x:hidden;padding:12px 8px;display:none;position:relative;flex-shrink:0;scroll-behavior:smooth;}
 #up.open{display:block;}
 #up-resizer{position:absolute;top:0;left:0;bottom:0;width:5px;cursor:col-resize;background:transparent;z-index:10;transition:background .15s;}
 #up-resizer:hover,#up-resizer.dragging{background:var(--acc);}
@@ -246,6 +246,12 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
   body.dm-tabs-on .ia{padding-bottom:58px;}
   #dm-tabs.has-tabs ~ * .ia, .ia.tabs-on{padding-bottom:56px;}
   #cv.v{padding-bottom:0;}
+  /* Sidebar: footer (nick/status) always visible above dm-tabs */
+  #sb .sf{position:sticky;bottom:0;background:var(--bg2);z-index:10;border-top:1px solid var(--border);}
+  /* Scrollable sidebar list */
+  .sb-sc{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:4px;}
+  /* Extra space in sidebar list when dm-tabs visible */
+  body.dm-tabs-on #sb .sb-sc{padding-bottom:52px;}
   /* Auth page mobile */
   .aw{padding:12px 10px;}
   .ab-sub{font-size:13px!important;}
@@ -281,7 +287,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 @keyframes mic-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
 
 /* ── DM TABS (mobile) ── */
-#dm-tabs{display:none;position:fixed;bottom:0;left:0;right:0;z-index:52;background:var(--bg2);border-top:1.5px solid var(--border);flex-wrap:nowrap;overflow-x:auto;padding:4px 6px;gap:6px;}
+#dm-tabs{display:none;position:fixed;bottom:0;left:0;right:0;z-index:48;background:var(--bg2);border-top:1.5px solid var(--border);flex-wrap:nowrap;overflow-x:auto;padding:4px 6px;gap:6px;}
 #dm-tabs.has-tabs{display:flex;}
 .dm-tab{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:var(--bg3);border:1.5px solid var(--border);cursor:pointer;font-size:12px;font-weight:600;color:var(--txt2);white-space:nowrap;transition:all .18s;flex-shrink:0;}
 .dm-tab.active{background:var(--acc-l);border-color:var(--acc);color:var(--acc);}
@@ -375,7 +381,6 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
       <div id="rl" style="padding:0 4px 2px"></div>
       <div class="sl">Личные сообщения</div>
       <div id="dl" style="padding:0 4px 2px"></div>
-      <div class="dm-btn" onclick="openDS()"><span style="font-size:14px">✉️</span><span>Написать кому-нибудь</span></div>
     </div>
     <div class="sf">
       <div class="ma" id="mava">?</div>
