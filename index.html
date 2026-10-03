@@ -1675,7 +1675,7 @@ window.toggleVideoRecording=async()=>{
   try{
     _videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480},frameRate:{ideal:24,max:24}},audio:true});
     preview.srcObject=_videoStream;preview.classList.add('active');
-    const types=['video/mp4;codecs=h264,aac','video/mp4','video/webm;codecs=vp8,opus','video/webm'];
+    const types=['video/webm;codecs=vp8,opus','video/webm;codecs=vp9,opus','video/webm','video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4'];
     const mimeType=types.find(t=>MediaRecorder.isTypeSupported(t))||'';
     _videoRec=new MediaRecorder(_videoStream,{...(mimeType?{mimeType}:{}),videoBitsPerSecond:1400000,audioBitsPerSecond:64000});
     _videoChunks=[];
@@ -1684,10 +1684,10 @@ window.toggleVideoRecording=async()=>{
     _videoRec.onstop=()=>{
       clearTimeout(_videoTimer);btn.classList.remove('recording');btn.textContent='🎥';preview.pause();preview.srcObject=null;preview.classList.remove('active');
       _videoStream?.getTracks().forEach(t=>t.stop());_videoStream=null;
-      const type=_videoRec.mimeType||mimeType||'video/webm';const ext=type.includes('mp4')?'mp4':'webm';const blob=new Blob(_videoChunks,{type});_videoChunks=[];
+      const type=_videoRec.mimeType||mimeType||'video/webm';const fileType=type.split(';')[0].toLowerCase();const ext=fileType==='video/mp4'?'mp4':'webm';const blob=new Blob(_videoChunks,{type});_videoChunks=[];
       if(blob.size<1000){toast('⚠️ Видео слишком короткое');return;}
       if(blob.size>6*1024*1024){toast('❌ Видео получилось больше 6MB. Попробуй записать короче или снизить качество камеры.');return;}
-      const videoFile=new File([blob],`video_${Date.now()}.${ext}`,{type});window.hFiles([videoFile]);toast('✅ Видео прикреплено. Нажми отправить, чтобы послать его в чат.');
+      const videoFile=new File([blob],`video_${Date.now()}.${ext}`,{type:fileType});window.hFiles([videoFile]);toast('✅ Видео прикреплено. Нажми отправить, чтобы послать его в чат.');
     };
     _videoRec.start();btn.textContent='⏹️';btn.classList.add('recording');toast('🎥 Запись видео: максимум 10 секунд. Нажми ⏹️, чтобы остановить раньше.');
     _videoTimer=setTimeout(()=>{if(_videoRec?.state==='recording')_videoRec.stop();},10000);
@@ -1777,6 +1777,7 @@ window.closeLB=()=>{g('lb').style.display='none';};
 <div id="dm-tabs"></div>
 </body>
 </html>
+
 
 
 
