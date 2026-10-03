@@ -913,7 +913,7 @@ function renderMsg(msg,c){
 
 function safeMediaSrc(value){
   const raw=String(value||'');
-  if(/^data:(?:image|video|audio)\/[a-z0-9.+-]+;base64,/i.test(raw))return raw.replace(/["'<>]/g,'');
+  if(/^data:(?:image|video|audio)\/[a-z0-9.+-]+(?:;[a-z0-9=,+.-]+)*;base64,/i.test(raw))return raw.replace(/["'<>]/g,'');
   try{const u=new URL(raw);return /^https?:$/.test(u.protocol)?esc(u.href).replace(/"/g,'&quot;').replace(/'/g,'&#39;'):'';}catch{return '';}
 }
 function imageOrVideoKind(url){
@@ -1777,6 +1777,7 @@ window.closeLB=()=>{g('lb').style.display='none';};
 <div id="dm-tabs"></div>
 </body>
 </html>
+
 
 
 
