@@ -539,7 +539,6 @@ window.addEventListener('load',function(){
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
 document.title='Peek-a-mouse · media-v4';
 const initializeApp = cfg => firebase.initializeApp(cfg);
@@ -550,7 +549,6 @@ const signOut = auth => auth.signOut();
 const onAuthStateChanged = (auth,cb) => auth.onAuthStateChanged(cb);
 const updateProfile = (user,data) => user.updateProfile(data);
 const getDatabase = app => firebase.database(app);
-const getStorage = app => firebase.storage(app);
 const ref = (db,path) => db.ref(path);
 const push = (r,val) => val===undefined ? r.push() : r.push(val);
 const set = (r,val) => r.set(val);
@@ -583,7 +581,6 @@ const cfg = {
 const fbApp = initializeApp(cfg);
 const auth  = getAuth(fbApp);
 const db    = getDatabase(fbApp);
-const st    = getStorage(fbApp);
 window.__authReady=true;
 window.__authLoadError='';
 
@@ -918,17 +915,20 @@ window.send=async()=>{
   if(!txt&&files.length===0)return;
   let media=[];
   if(files.length>0){
+    const totalBytes=files.reduce((sum,f)=>sum+f.size,0);
+    if(totalBytes>8*1024*1024){toast('❌ Общий размер вложений в одном сообщении должен быть не больше 8MB');return;}
     toast('⬆️ Загружаю медиа...');
     for(const f of files){
       try{
         const t=f.type.startsWith('image')?'image':f.type.startsWith('video')?'video':f.type.startsWith('audio')?'audio':'';
         if(!t)throw new Error('Неподдерживаемый формат файла: '+f.name);
-        const ext=(f.name.split('.').pop()||'bin').replace(/[^a-z0-9]/gi,'').toLowerCase();
-        const path=`media/${me.uid}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const storageRef=st.ref(path);
-        await storageRef.put(f,{contentType:f.type||'application/octet-stream'});
-        const url=await storageRef.getDownloadURL();
-        media.push({url,type:t,name:f.name});
+        const dataUrl=await new Promise((resolve,reject)=>{
+          const reader=new FileReader();
+          reader.onload=()=>resolve(reader.result);
+          reader.onerror=()=>reject(new Error('Не удалось прочитать файл'));
+          reader.readAsDataURL(f);
+        });
+        media.push({url:dataUrl,type:t,name:f.name});
       }catch(e){console.error('Media upload failed',e);toast(`❌ Не удалось загрузить файл: ${e.code||e.message||e}`,7000);return;}
     }
   }
@@ -976,7 +976,7 @@ window.hFiles=flist=>{
     const isImg=f.type.startsWith('image');
     const isVid=f.type.startsWith('video');
     const isAud=f.type.startsWith('audio');
-    const limit=isImg?10:isAud?20:isVid?50:5; // images 10MB, audio 20MB, video 50MB
+    const limit=7; // Base64 is stored in Realtime Database; keep each file below its string limit.
     if(f.size>limit*1024*1024){toast(`❌ Файл больше ${limit}MB`);continue;}
     files.push(f);
     const ch=document.createElement('div'); ch.className='chip';
