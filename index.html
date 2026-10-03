@@ -1689,7 +1689,7 @@ window.toggleVideoRecording=async()=>{
       if(blob.size>6*1024*1024){toast('❌ Видео получилось больше 6MB. Попробуй записать короче или снизить качество камеры.');return;}
       const videoFile=new File([blob],`video_${Date.now()}.${ext}`,{type});window.hFiles([videoFile]);toast('✅ Видео прикреплено. Нажми отправить, чтобы послать его в чат.');
     };
-    _videoRec.start(300);btn.textContent='⏹️';btn.classList.add('recording');toast('🎥 Запись видео: максимум 10 секунд. Нажми ⏹️, чтобы остановить раньше.');
+    _videoRec.start();btn.textContent='⏹️';btn.classList.add('recording');toast('🎥 Запись видео: максимум 10 секунд. Нажми ⏹️, чтобы остановить раньше.');
     _videoTimer=setTimeout(()=>{if(_videoRec?.state==='recording')_videoRec.stop();},10000);
   }catch(e){_videoStream?.getTracks().forEach(t=>t.stop());_videoStream=null;preview?.pause();if(preview){preview.srcObject=null;preview.classList.remove('active');}btn?.classList.remove('recording');if(btn)btn.textContent='🎥';console.error('Video recording failed',e);toast(e.name==='NotAllowedError'?'⚠️ Разреши доступ к камере и микрофону для записи видео':'⚠️ Не удалось начать запись видео');}
 };
@@ -1777,6 +1777,7 @@ window.closeLB=()=>{g('lb').style.display='none';};
 <div id="dm-tabs"></div>
 </body>
 </html>
+
 
 
 
