@@ -419,7 +419,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
         <button class="icb hbg" onclick="togSB()" style="display:none">☰</button>
         <div class="ch-ico2" id="hico">🌐</div>
         <div><div class="cht" id="htit">Общий</div><div class="chs" id="hsub"></div></div>
-        <div class="chr"><button class="icb" id="close-dm-btn" onclick="closeDMView()" title="Закрыть чат" style="display:none">✕</button><button class="icb" id="leave-room-btn" onclick="leaveRoom()" title="Выйти из комнаты" style="display:none">🚪</button><button class="icb" id="clr-hist-btn" onclick="clearHistory()" title="Очистить историю" style="display:none">🗑️</button><button class="icb" id="del-dm-btn" onclick="delDMChat()" title="Удалить личный чат" style="display:none;color:var(--red)">🗑💬</button><button class="sound-toggle on" id="sound-btn" title="Звук личных сообщений" onclick="togSound()">🔔</button><button class="icb" id="togup-btn" onclick="togUP()" title="Участники">👥</button></div>
+        <div class="chr"><button class="icb" id="close-dm-btn" onclick="closeDMView()" title="Закрыть чат" style="display:none">✕</button><button class="icb" id="leave-room-btn" onclick="leaveRoom()" title="Выйти из комнаты" style="display:none">🚪</button><button class="icb" id="clr-hist-btn" onclick="clearHistory()" title="Очистить историю" style="display:none">🗑️</button><button class="icb" id="del-dm-btn" onclick="delDMChat()" title="Удалить личный чат" style="display:none;color:var(--red)">🗑💬</button><button class="sound-toggle on" id="sound-btn" title="Звук сообщений" onclick="togSound()">🔔</button><button class="icb" id="togup-btn" onclick="togUP()" title="Участники">👥</button></div>
       </div>
       <div class="msgs" id="msgs"></div>
       <div class="tl" id="tl"></div>
@@ -807,24 +807,34 @@ function openCh(id,type,title,icon,sub){
   const c=g('msgs'); c.innerHTML='';
   if(msgsRef)off(msgsRef);
   const path=type==='general'?'messages/general':type==='room'?`messages/rooms/${id}`:`messages/dms/${id}`;
-  msgsRef=query(ref(db,path),orderByChild('ts'),limitToLast(200));
-  let _firstLoad=true; let _lastTs=0;
-  onChildAdded(msgsRef,snap=>{
-    const m=snap.val();
-    if(isIgnored(m.uid)) return; // skip ignored
-    renderMsg(m,c); c.scrollTop=c.scrollHeight;
-    // DM sound + unread tab blink
-    if(!_firstLoad && curType==='dm' && m.uid!==me?.uid && m.ts>_lastTs){
-      playDMSound();
-    }
-    // If message arrives in a DM we're NOT currently viewing
-    if(!_firstLoad && type==='dm' && m.uid!==me?.uid && m.ts>_lastTs && curCh!==id){
-      markDMTabUnread(id);
-    }
-    if(m.ts>_lastTs) _lastTs=m.ts;
+  const channelRef=query(ref(db,path),orderByChild('ts'),limitToLast(200));
+  msgsRef=channelRef;
+  // Seed existing keys before the live listener, so history/reconnect events stay silent.
+  get(channelRef).then(initialSnap=>{
+    if(msgsRef!==channelRef)return;
+    const knownKeys=new Set();
+    initialSnap.forEach(child=>knownKeys.add(child.key));
+    onChildAdded(channelRef,snap=>{
+      const m=snap.val();
+      const isNew=!knownKeys.has(snap.key);
+      knownKeys.add(snap.key);
+      if(isIgnored(m.uid))return;
+      renderMsg(m,c);c.scrollTop=c.scrollHeight;
+      if(isNew&&m.uid!==me?.uid){
+        if(type==='general')playGeneralSound();
+        if(type==='dm')playDMSound();
+        if(type==='dm'&&curCh!==id)markDMTabUnread(id);
+      }
+    });
+  }).catch(err=>{
+    if(msgsRef!==channelRef)return;
+    console.warn('Could not seed chat history before listening',err);
+    // Preserve live message rendering if the initial read fails; suppress sounds until reopening the chat.
+    onChildAdded(channelRef,snap=>{
+      const m=snap.val();if(isIgnored(m.uid))return;
+      renderMsg(m,c);c.scrollTop=c.scrollHeight;
+    });
   });
-  // Clear firstLoad flag after short delay
-  setTimeout(()=>_firstLoad=false, 1500);
   listenTyping(id);
   // Show clear-history button for SU in general chat, or for SU/room owner in room
   const clrBtn=g('clr-hist-btn');
@@ -1377,7 +1387,7 @@ function togSound(){
   if(localStorage) localStorage.setItem('dmSound', dmSoundOn?'on':'off');
   const btn=g('sound-btn');
   if(btn){btn.textContent=dmSoundOn?'🔔':'🔕';btn.className='sound-toggle '+(dmSoundOn?'on':'off');}
-  toast(dmSoundOn?'🔔 Звук ЛС включён':'🔕 Звук ЛС выключен');
+  toast(dmSoundOn?'🔔 Звук сообщений включён':'🔕 Звук сообщений выключен');
 }
 window.togSound=togSound;
 
@@ -1417,19 +1427,23 @@ function playDMSound(){
   try{
     const ctx=getACtx();
     const play=(freq,start,gain,dur)=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.type='sine';o.connect(g);g.connect(ctx.destination);
-      o.frequency.setValueAtTime(freq,ctx.currentTime+start);
-      g.gain.setValueAtTime(0,ctx.currentTime+start);
-      g.gain.linearRampToValueAtTime(gain,ctx.currentTime+start+0.02);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.connect(g);g.connect(ctx.destination);
+      o.frequency.setValueAtTime(freq,ctx.currentTime+start);g.gain.setValueAtTime(0,ctx.currentTime+start);
+      g.gain.linearRampToValueAtTime(gain,ctx.currentTime+start+0.02);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
       o.start(ctx.currentTime+start);o.stop(ctx.currentTime+start+dur+0.05);
     };
-    play(1046,0,0.65,0.32);   // C6 louder
-    play(1318,0.16,0.55,0.45); // E6
+    play(1046,0,0.78,0.32);play(1318,0.16,0.68,0.45);
   }catch(e){}
 }
-
+function playGeneralSound(){
+  if(!dmSoundOn)return;
+  try{
+    const ctx=getACtx(),o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.connect(g);g.connect(ctx.destination);
+    o.frequency.setValueAtTime(880,ctx.currentTime);g.gain.setValueAtTime(0,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.58,ctx.currentTime+0.025);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.34);
+    o.start();o.stop(ctx.currentTime+0.38);
+  }catch(e){}
+}
 // User JOIN sound — soft ascending chime (pleasant, subtle)
 function playJoinSound(){
   try{
@@ -1439,7 +1453,7 @@ function playJoinSound(){
       o.type='sine';o.connect(g);g.connect(ctx.destination);
       o.frequency.setValueAtTime(freq,ctx.currentTime+i*0.1);
       g.gain.setValueAtTime(0,ctx.currentTime+i*0.1);
-      g.gain.linearRampToValueAtTime(0.22,ctx.currentTime+i*0.1+0.02);
+      g.gain.linearRampToValueAtTime(0.32,ctx.currentTime+i*0.1+0.02);
       g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.1+0.35);
       o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+i*0.1+0.4);
     });
@@ -1455,7 +1469,7 @@ function playLeaveSound(){
       o.type='sine';o.connect(g);g.connect(ctx.destination);
       o.frequency.setValueAtTime(freq,ctx.currentTime+i*0.1);
       g.gain.setValueAtTime(0,ctx.currentTime+i*0.1);
-      g.gain.linearRampToValueAtTime(0.18,ctx.currentTime+i*0.1+0.02);
+      g.gain.linearRampToValueAtTime(0.28,ctx.currentTime+i*0.1+0.02);
       g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.1+0.3);
       o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+i*0.1+0.35);
     });
@@ -1777,6 +1791,8 @@ window.closeLB=()=>{g('lb').style.display='none';};
 <div id="dm-tabs"></div>
 </body>
 </html>
+
+
 
 
 
