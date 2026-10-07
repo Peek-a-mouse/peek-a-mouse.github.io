@@ -193,6 +193,32 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .ud{width:6px;height:6px;border-radius:50%;background:var(--txt3);flex-shrink:0;}
 .ud.on{background:var(--green);}
 .un{font-size:14px;font-weight:500;}
+.uav img,.mava img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;}
+.u-labels{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.15;}
+.u-labels .un{max-width:100%;}
+.u-profile-name{font-size:10px;color:var(--txt3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mf.clickable-nick{cursor:pointer;text-decoration:underline;text-decoration-color:transparent;text-underline-offset:2px;}
+.mf.clickable-nick:hover{text-decoration-color:currentColor;color:var(--acc);}
+.mf-label{font-size:10px;color:var(--txt3);}
+.profile-edit-btn{border:0;background:none;padding:0;color:var(--acc);font:inherit;font-size:10px;cursor:pointer;}
+.profile-edit-btn:hover{text-decoration:underline;}
+/* User actions and profile card */
+.user-menu{position:fixed;z-index:240;display:none;min-width:190px;max-width:calc(100vw - 24px);padding:6px;background:var(--bg2);border:1px solid var(--border);border-radius:11px;box-shadow:0 12px 32px #0003;}
+.user-menu.open{display:flex;flex-direction:column;gap:3px;}
+.user-menu-title{padding:6px 9px 8px;font-size:12px;font-weight:700;color:var(--txt2);border-bottom:1px solid var(--border);margin-bottom:2px;}
+.user-menu button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:7px;color:var(--txt);font:inherit;font-size:13px;cursor:pointer;}
+.user-menu button:hover{background:var(--bg3);}
+.user-menu button.danger{color:var(--red);}
+.profile-mo{max-height:90vh;overflow-y:auto;}
+.profile-head{display:flex;align-items:center;gap:12px;margin-bottom:15px;}
+.profile-photo-preview{width:72px;height:72px;border-radius:18px;object-fit:cover;background:var(--bg3);border:1px solid var(--border);flex-shrink:0;}
+.profile-nick{font-size:12px;color:var(--txt3);margin-top:-12px;margin-bottom:12px;}
+.profile-mo .f textarea,.profile-mo .f input{width:100%;padding:9px 11px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--r2);color:var(--txt);font:inherit;font-size:14px;outline:none;}
+.profile-mo .f textarea{resize:vertical;min-height:64px;}
+.profile-mo .f input:focus,.profile-mo .f textarea:focus{border-color:var(--acc);background:#fff;}
+.profile-mo [disabled]{opacity:1;color:var(--txt2);}
+.profile-photo-actions{display:flex;align-items:center;gap:8px;}
+.profile-photo-actions button{border:0;background:none;color:var(--acc);font:inherit;font-size:12px;cursor:pointer;padding:4px;}
 
 /* ── MODALS ── */
 .ov{position:fixed;inset:0;z-index:200;background:#1c1b1842;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
@@ -401,6 +427,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
       <div class="ma" id="mava">?</div>
       <div style="flex:1;min-width:0">
         <div class="mn" id="mn">...</div>
+        <button class="profile-edit-btn" onclick="openMyProfile()">Мой профиль</button>
         <div class="on-st">в сети</div>
       </div>
       <button class="icb" onclick="doOut()" title="Выйти" style="font-size:16px;">⎋</button>
@@ -503,6 +530,20 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
   </div>
 </div>
 
+<div id="user-menu" class="user-menu" role="menu"></div>
+<div class="ov" id="profile-modal">
+  <div class="mo profile-mo">
+    <div class="profile-head"><img id="profile-photo-preview" class="profile-photo-preview" alt="Фото профиля"><div><div class="mt" id="profile-title" style="margin:0 0 12px"></div><div class="profile-nick" id="profile-nick"></div><div class="profile-nick" style="margin:0">Информация видна участникам чата</div></div></div>
+    <div class="f hidden" id="profile-photo-edit"><label>Фотография профиля</label><div class="profile-photo-actions"><input id="profile-photo-input" type="file" accept="image/*" onchange="profilePhotoChanged(this.files[0])" style="max-width:220px"><button type="button" onclick="removeProfilePhoto()">Убрать фото</button></div></div>
+    <div class="f"><label>Имя или обращение</label><input id="profile-display-name" maxlength="40" placeholder="Как к тебе обращаться"></div>
+    <div class="f"><label>Пол</label><input id="profile-gender" disabled></div>
+    <div class="f"><label>Возраст (необязательно)</label><input id="profile-age" type="number" min="1" max="120" placeholder="Возраст"></div>
+    <div class="f"><label>Город</label><input id="profile-city" maxlength="60" placeholder="Город"></div>
+    <div class="f"><label>О себе</label><textarea id="profile-about" maxlength="300" placeholder="Коротко о себе"></textarea></div>
+    <div class="f"><label>Интересы</label><input id="profile-interests" maxlength="200" placeholder="Например: музыка, путешествия, книги"></div>
+    <div class="mr"><button class="btn btn-o" onclick="cM('profile-modal')">Закрыть</button><button class="btn hidden" id="profile-save" onclick="saveMyProfile()">Сохранить</button></div>
+  </div>
+</div>
 <div id="toast"></div>
 
 <script>
@@ -613,6 +654,7 @@ window.__authReady=true;
 window.__authLoadError='';
 
 let me=null, curCh=null, curType=null, msgsRef=null;
+let _usersCache={};
 let files=[], tTmo=null, pRoom=null;
 let regGender='m'; // default male
 let _dmWatchers={};
@@ -765,7 +807,7 @@ onAuthStateChanged(auth,async user=>{
       // Ensure gender is saved in DB
       if(uData.gender!=='m') await set(ref(db,`users/${user.uid}/gender`),'m');
     }
-    me={uid:user.uid,name:rawName,isSU:isSuperU,gender};
+    me={uid:user.uid,name:rawName,isSU:isSuperU,gender,profile:uData.profile||{}};
     // Superuser is invisible — don't appear in online list
     if(!isSuperU){
       await set(ref(db,`users/${me.uid}/online`),true);
@@ -780,8 +822,9 @@ onAuthStateChanged(auth,async user=>{
     g('auth').style.display='none';
     g('app').classList.remove('h');
     const mavaEl=g('mava');
-    mavaEl.textContent=ini(me.name);
     mavaEl.className='ma '+(gender==='f'?'mava-f':'mava-m');
+    const ownPhoto=safeMediaSrc(me.profile.photo||'');
+    mavaEl.innerHTML=ownPhoto?('<img src="'+ownPhoto+'" alt="">'):ini(me.name);
     g('mn').innerHTML=me.name+(isSuperU?'<span class="superuser-badge">SU</span>':'');
     ldRooms(); ldDMs(); ldIgnores();
     initUsersListener(); // live presence + sounds
@@ -915,9 +958,14 @@ function renderMsg(msg,c){
   const gClass = senderGender==='f' ? 'mava-f' : 'mava-m';
   // Capitalize sender name if first char is uppercase in original
   const senderDisplay = msg.sender ? msg.sender : '?';
-  d.innerHTML=`<div class="mava ${gClass}">${ini(msg.sender)}</div>
-    <div class="mb"><div class="mm"><span class="mf">${esc(senderDisplay)}</span><span>${t}</span></div>
+  const senderPhoto=safeMediaSrc(msg.profilePhoto||_usersCache[msg.uid]?.profile?.photo||'');
+  const senderAvatar=senderPhoto?`<img src="${senderPhoto}" alt="">`:ini(senderDisplay);
+  const profileName=msg.profileName||_usersCache[msg.uid]?.profile?.displayName||'';
+  d.innerHTML=`<div class="mava ${gClass}">${senderAvatar}</div>
+    <div class="mb"><div class="mm"><span class="mf clickable-nick" title="${curType==='general'?'Нажми, чтобы обратиться в общий чат':'Информация о пользователе'}">${esc(senderDisplay)}</span>${profileName?`<span class="mf-label">${esc(profileName)}</span>`:''}<span>${t}</span></div>
     <div class="bbl">${formatMessageText(msg.text||'')}${med}</div></div>`;
+  const nickEl=d.querySelector('.mf');
+  nickEl.onclick=e=>{e.stopPropagation();if(msg.uid===me?.uid)return;if(curType==='general')insertPublicMention(msg.uid,senderDisplay);else openUserProfile(msg.uid,senderDisplay,false);};
   c.appendChild(d);
 }
 
@@ -978,7 +1026,7 @@ window.send=async()=>{
     if(kind&&safeMediaSrc(url)){media.push({url,type:kind});messageText=messageText.replace(match[0],' ').replace(/\s{2,}/g,' ').trim();}
   }
   const path=curType==='general'?'messages/general':curType==='room'?`messages/rooms/${curCh}`:`messages/dms/${curCh}`;
-  const data={uid:me.uid,sender:me.name,gender:me.gender||'m',ts:Date.now(),text:messageText};
+  const data={uid:me.uid,sender:me.name,gender:me.gender||'m',profileName:me.profile?.displayName||'',profilePhoto:me.profile?.photo||'',ts:Date.now(),text:messageText};
   if(media.length)data.media=media;
   try{await push(ref(db,path),data);}
   catch(e){console.error('Message write failed',e);toast(`❌ Не удалось отправить сообщение: ${e.code||e.message||e}`,7000);return;}
@@ -1236,6 +1284,7 @@ function initUsersListener(){
   // Live updates: re-render on any user change
   const valueCb = snap=>{
     const users = snap.val()||{};
+    _usersCache=users;
     if(!curType || curType === 'general') renderUList(users, null, false);
     if(curType === 'room' && curCh) renderUList(users, curCh, true);
   };
@@ -1305,16 +1354,24 @@ function renderUList(usersMap, roomId, isRoom){
   l.innerHTML = '';
   if(!list.length){ l.innerHTML='<div class="ni">Никого нет</div>'; return; }
   list.forEach(u=>{
-    const gClass = u.gender==='f' ? 'uav-f' : 'uav-m';
-    const el = document.createElement('div');
-    el.className = 'ui';
-    const suBtns = isSU() ? `<button class="kick-btn" title="Кикнуть" onclick="kickUser(event,'${u.uid}','${esc(u.name)}')">⚡</button>` : '';
-    const igClass = ignoredUsers&&ignoredUsers[u.uid] ? 'ignored' : '';
-    const igTitle = ignoredUsers&&ignoredUsers[u.uid] ? 'Разблокировать' : 'Заблокировать';
-    const igBtn = u.uid!==me.uid ? `<button class="kick-btn ${igClass}" title="${igTitle}" onclick="toggleIgnore('${u.uid}','${esc(u.name)}');ldUsers();" style="font-size:11px">${ignoredUsers&&ignoredUsers[u.uid]?'✅':'🚫'}</button>` : '';
-    el.innerHTML = `<div class="uav ${gClass}">${ini(u.name)}</div>
-      <span class="un" style="flex:1">${esc(u.name)}</span><div class="ud on"></div>${igBtn}${suBtns}`;
-    if(u.uid!==me.uid) el.onclick=(e)=>{ if(!e.target.closest('.kick-btn')) stDM(u); };
+    const gClass=u.gender==='f'?'uav-f':'uav-m';
+    const photo=safeMediaSrc(u.profile?.photo||'');
+    const avatar=photo?`<img src="${photo}" alt="">`:ini(u.name);
+    const el=document.createElement('div');el.className='ui';
+    const suBtns=isSU()?`<button class="kick-btn" title="Кикнуть" onclick="kickUser(event,'${u.uid}','${esc(u.name)}')">⚡</button>`:'';
+    el.innerHTML=`<div class="uav ${gClass}">${avatar}</div><div class="u-labels"><span class="un">${esc(u.name)}</span>${u.profile?.displayName?`<span class="u-profile-name">${esc(u.profile.displayName)}</span>`:''}</div><div class="ud on"></div>${suBtns}`;
+    if(u.uid!==me.uid){
+      el.onclick=e=>{
+        if(e.target.closest('.kick-btn'))return;
+        clearTimeout(el._userClickTimer);
+        const x=e.clientX,y=e.clientY;
+        el._userClickTimer=setTimeout(()=>showUserMenu(u,x,y),250);
+      };
+      el.ondblclick=e=>{
+        if(e.target.closest('.kick-btn'))return;
+        e.preventDefault();clearTimeout(el._userClickTimer);el._userClickTimer=null;closeUserMenu();stDM(u);
+      };
+    }
     l.appendChild(el);
   });
 }
@@ -1497,6 +1554,106 @@ window.toggleIgnore=async(uid,name)=>{
 };
 function isIgnored(uid){ return !!(ignoredUsers&&ignoredUsers[uid]); }
 
+// ── USER PROFILES AND PUBLIC ADDRESSING ──
+let _activeUserMenu=null,_profilePhotoDraft='';
+function closeUserMenu(){const menu=g('user-menu');if(menu)menu.classList.remove('open');_activeUserMenu=null;}
+function showUserMenu(u,x,y){
+  const menu=g('user-menu');if(!menu)return;
+  _activeUserMenu={uid:u.uid,name:u.name};
+  const own=u.uid===me?.uid;
+  const blocked=!!ignoredUsers?.[u.uid];
+  menu.innerHTML=`<div class="user-menu-title">${esc(u.name)}</div>${own?`<button type="button" onclick="userMenuInfo(true)">Мой профиль</button>`:`<button type="button" onclick="userMenuAddress()">Написать в общий чат</button><button type="button" onclick="userMenuInfo(false)">Информация</button><button type="button" class="danger" onclick="userMenuBlock()">${blocked?'Разблокировать':'Заблокировать'}</button>`}`;
+  menu.classList.add('open');
+  const r=menu.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';menu.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px';
+}
+document.addEventListener('click',e=>{if(!e.target.closest('#user-menu')&&!e.target.closest('.ui'))closeUserMenu();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeUserMenu();if(g('profile-modal')?.classList.contains('open'))cM('profile-modal');}});
+function putPublicAddress(name){
+  const input=g('mi');if(!input)return;
+  const start=input.selectionStart??input.value.length,end=input.selectionEnd??start;
+  const label=String(name||'').trim().replace(/\s+/g,'_');
+  const mention=(start>0&&!/\s/.test(input.value[start-1])?' ':'')+'@'+label+' ';
+  input.setRangeText(mention,start,end,'end');input.focus();grow(input);onT();
+}
+window.insertPublicMention=(uid,name)=>{if(curType==='general'&&uid!==me?.uid)putPublicAddress(name);};
+window.userMenuAddress=async()=>{
+  const target=_activeUserMenu;if(!target)return;closeUserMenu();
+  if(curType!=='general')await openGen();
+  putPublicAddress(target.name);
+};
+window.userMenuInfo=editing=>{
+  const target=_activeUserMenu;if(!target)return;closeUserMenu();
+  openUserProfile(target.uid,target.name,!!editing);
+};
+window.userMenuBlock=async()=>{
+  const target=_activeUserMenu;if(!target||target.uid===me?.uid)return;
+  closeUserMenu();await toggleIgnore(target.uid,target.name);ldUsers();
+};
+window.openMyProfile=()=>{if(me)openUserProfile(me.uid,me.name,true);};
+window.openUserProfile=async(uid,name,editing=false)=>{
+  const own=!!editing&&uid===me?.uid;
+  try{
+    let user=_usersCache[uid]||{};
+    if(own||!user.profile){const snap=await get(ref(db,`users/${uid}`));user=snap.val()||user;}
+    const profile=user.profile||{};
+    g('profile-title').textContent=own?'Мой профиль':'Информация';
+    g('profile-nick').textContent='Ник: '+(user.name||name||'');
+    g('profile-display-name').value=profile.displayName||'';
+    g('profile-gender').value=user.gender==='f'?'Женский':'Мужской';
+    g('profile-age').value=profile.age||'';
+    g('profile-city').value=profile.city||'';
+    g('profile-about').value=profile.about||'';
+    g('profile-interests').value=profile.interests||'';
+    for(const id of ['profile-display-name','profile-age','profile-city','profile-about','profile-interests']){const field=g(id);field.disabled=!own;field.closest('.f').classList.toggle('hidden',!own&&!field.value);}
+    g('profile-photo-edit').classList.toggle('hidden',!own);
+    g('profile-save').classList.toggle('hidden',!own);
+    _profilePhotoDraft=profile.photo||'';
+    const preview=g('profile-photo-preview'),photo=safeMediaSrc(_profilePhotoDraft);
+    if(photo){preview.src=photo;preview.style.display='';}else{preview.removeAttribute('src');preview.style.display='none';}
+    oM('profile-modal');
+  }catch(e){console.error('Profile load failed',e);toast('❌ Не удалось загрузить профиль');}
+};
+window.profilePhotoChanged=file=>{
+  if(!file)return;
+  if(!file.type.startsWith('image/')){toast('Выбери файл изображения');return;}
+  if(file.size>8*1024*1024){toast('Фото профиля должно быть меньше 8MB');return;}
+  const saveBtn=g('profile-save');if(saveBtn)saveBtn.disabled=true;
+  const reader=new FileReader();reader.onerror=()=>{if(saveBtn)saveBtn.disabled=false;toast('Не удалось прочитать изображение');};
+  reader.onload=()=>{
+    const img=new Image();img.onerror=()=>{if(saveBtn)saveBtn.disabled=false;toast('Не удалось открыть изображение');};
+    img.onload=()=>{
+      const scale=Math.min(1,320/Math.max(img.naturalWidth,img.naturalHeight));
+      const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      canvas.toBlob(async blob=>{
+        if(!blob){if(saveBtn)saveBtn.disabled=false;toast('Не удалось подготовить фото');return;}
+        const form=new FormData();form.append('file',blob,'profile.jpg');form.append('upload_preset','peek-a-mouse');
+        toast('⬆️ Загружаю фотографию профиля...');
+        try{
+          const response=await fetch('https://api.cloudinary.com/v1_1/aykq7qut/image/upload',{method:'POST',body:form});
+          const result=await response.json();if(!response.ok||!result.secure_url)throw new Error(result.error?.message||'Ошибка загрузки');
+          _profilePhotoDraft=result.secure_url;const preview=g('profile-photo-preview');preview.src=result.secure_url;preview.style.display='';if(saveBtn)saveBtn.disabled=false;toast('✅ Фото загружено');
+        }catch(e){if(saveBtn)saveBtn.disabled=false;console.error('Profile photo upload failed',e);toast('❌ Не удалось загрузить фото. Проверь настройки Upload Preset Cloudinary.');}
+      },'image/jpeg',0.76);
+    };
+    img.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+};
+window.removeProfilePhoto=()=>{_profilePhotoDraft='';g('profile-photo-preview').removeAttribute('src');g('profile-photo-preview').style.display='none';g('profile-photo-input').value='';};
+window.saveMyProfile=async()=>{
+  if(!me)return;
+  const ageText=g('profile-age').value.trim(),age=ageText?Number(ageText):null;
+  if(age!==null&&(!Number.isInteger(age)||age<1||age>120)){toast('Возраст укажи числом от 1 до 120');return;}
+  const profile={displayName:g('profile-display-name').value.trim().slice(0,40),city:g('profile-city').value.trim().slice(0,60),about:g('profile-about').value.trim().slice(0,300),interests:g('profile-interests').value.trim().slice(0,200)};
+  if(age!==null)profile.age=age;if(_profilePhotoDraft)profile.photo=_profilePhotoDraft;
+  try{
+    await set(ref(db,`users/${me.uid}/profile`),profile);me.profile=profile;
+    if(!_usersCache[me.uid])_usersCache[me.uid]={uid:me.uid,name:me.name};_usersCache[me.uid].profile=profile;
+    const photo=safeMediaSrc(profile.photo||''),avatar=g('mava');avatar.innerHTML=photo?'<img src="'+photo+'" alt="">':ini(me.name);
+    cM('profile-modal');ldUsers();toast('✅ Профиль сохранён');
+  }catch(e){console.error('Profile save failed',e);toast(`❌ Не удалось сохранить профиль: ${e.message||e}`);}
+};
 // ── YOUTUBE LINK DETECTION IN SEND ──
 function hasYTLink(txt){
   return /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(txt);
@@ -1791,4 +1948,22 @@ window.closeLB=()=>{g('lb').style.display='none';};
 <div id="dm-tabs"></div>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
