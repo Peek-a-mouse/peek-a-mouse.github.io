@@ -1358,7 +1358,8 @@ function renderUList(usersMap, roomId, isRoom){
   if(!list.length){ l.innerHTML='<div class="ni">Никого нет</div>'; return; }
   list.forEach(u=>{
     const gClass=u.gender==='f'?'uav-f':'uav-m';
-    const avatar=ini(u.name);
+    const photo=safeMediaSrc(u.profile?.photo||'');
+    const avatar=photo?`<img src="${photo}" alt="Фото профиля">`:ini(u.name);
     const el=document.createElement('div');el.className='ui';
     const suBtns=isSU()?`<button class="kick-btn" title="Кикнуть" onclick="kickUser(event,'${u.uid}','${esc(u.name)}')">⚡</button>`:'';
     el.innerHTML=`<div class="uav ${gClass}">${avatar}</div><div class="u-labels"><span class="un">${esc(u.name)}</span>${u.profile?.displayName?`<span class="u-profile-name">${esc(u.profile.displayName)}</span>`:''}</div><div class="ud on"></div>${suBtns}`;
