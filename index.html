@@ -222,6 +222,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .profile-mo [disabled]{opacity:1;color:var(--txt2);}
 .profile-photo-actions{display:flex;align-items:center;gap:8px;}
 .profile-photo-actions button{border:0;background:none;color:var(--acc);font:inherit;font-size:12px;cursor:pointer;padding:4px;}
+.su-dm-row{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--bg2);color:var(--txt);font:inherit;cursor:pointer;}
+.su-dm-row:hover{background:var(--bg3);}
 
 /* ── MODALS ── */
 .ov{position:fixed;inset:0;z-index:200;background:#1c1b1842;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
@@ -449,7 +451,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
         <button class="icb hbg" onclick="togSB()" style="display:none">☰</button>
         <div class="ch-ico2" id="hico">🌐</div>
         <div><div class="cht" id="htit">Общий</div><div class="chs" id="hsub"></div></div>
-        <div class="chr"><button class="icb" id="close-dm-btn" onclick="closeDMView()" title="Закрыть чат" style="display:none">✕</button><button class="icb" id="leave-room-btn" onclick="leaveRoom()" title="Выйти из комнаты" style="display:none">🚪</button><button class="icb" id="clr-hist-btn" onclick="clearHistory()" title="Очистить историю" style="display:none">🗑️</button><button class="icb" id="del-dm-btn" onclick="delDMChat()" title="Удалить личный чат" style="display:none;color:var(--red)">🗑💬</button><button class="sound-toggle on" id="sound-btn" title="Звук сообщений" onclick="togSound()">🔔</button><button class="icb" id="togup-btn" onclick="togUP()" title="Участники">👥</button></div>
+        <div class="chr"><button class="icb" id="su-dms-btn" onclick="openSUDMInspector()" title="Личные приваты — модерация" style="display:none">🔎💬</button><button class="icb" id="close-dm-btn" onclick="closeDMView()" title="Закрыть чат" style="display:none">✕</button><button class="icb" id="leave-room-btn" onclick="leaveRoom()" title="Выйти из комнаты" style="display:none">🚪</button><button class="icb" id="clr-hist-btn" onclick="clearHistory()" title="Очистить историю" style="display:none">🗑️</button><button class="icb" id="del-dm-btn" onclick="delDMChat()" title="Удалить личный чат" style="display:none;color:var(--red)">🗑💬</button><button class="sound-toggle on" id="sound-btn" title="Звук сообщений" onclick="togSound()">🔔</button><button class="icb" id="togup-btn" onclick="togUP()" title="Участники">👥</button></div>
       </div>
       <div class="msgs" id="msgs"></div>
       <div class="tl" id="tl"></div>
@@ -548,6 +550,15 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
   </div>
 </div>
 <div id="profile-image-zoom" onclick="closeProfileImageZoom()" aria-label="Закрыть увеличенное фото"><img id="profile-image-zoom-img" alt="Фото профиля"></div>
+<div class="ov" id="su-dm-modal">
+  <div class="mo profile-mo" style="max-width:520px">
+    <div class="mt">Личные приваты — доступ модератора</div>
+    <p style="font-size:12px;color:var(--txt3);margin:-8px 0 12px">При открытии переписки участники увидят запись о проверке.</p>
+    <div class="f"><input id="su-dm-search" type="search" placeholder="Фильтр по нику" oninput="filterSUDMList()"></div>
+    <div id="su-dm-list" style="display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto"></div>
+    <div class="mr"><button class="btn btn-o" onclick="cM('su-dm-modal')">Закрыть</button></div>
+  </div>
+</div>
 <div id="toast"></div>
 
 <script>
@@ -672,6 +683,18 @@ window.selGender=g2=>{
 // ── SUPERUSER ──
 const SUPERUSER = { login: 'max', password: 'yura086004' };
 function isSU(){ return me && me.name.toLowerCase() === SUPERUSER.login && me.isSU; }
+let _moderationBanUnsub=null;
+function watchOwnModerationBan(uid){
+  if(_moderationBanUnsub){_moderationBanUnsub();_moderationBanUnsub=null;}
+  _moderationBanUnsub=onValue(ref(db,`moderation/bans/${uid}`),async snap=>{
+    const ban=snap.val();
+    if(ban?.until>Date.now()&&auth.currentUser?.uid===uid){
+      try{await set(ref(db,`users/${uid}/online`),false);await remove(ref(db,`users/${uid}/inRoom`));}catch(e){}
+      g('le').textContent=`Доступ временно ограничен модератором до ${new Date(ban.until).toLocaleString('ru-RU')}.`;
+      await signOut(auth);
+    }
+  });
+}
 
 // utils
 const g  = id => document.getElementById(id);
@@ -799,6 +822,14 @@ window.doOut=async()=>{
 onAuthStateChanged(auth,async user=>{
   if(user){
     const rawName=user.displayName||user.email.split('@')[0];
+    let currentBan=null;
+    try{const banSnap=await get(ref(db,`moderation/bans/${user.uid}`));currentBan=banSnap.val();}
+    catch(e){console.warn('Temporary-ban status is unavailable; check Firebase read rules',e);}
+    if(currentBan?.until>Date.now()){
+      await set(ref(db,`users/${user.uid}/online`),false);
+      g('le').textContent=`Доступ временно ограничен модератором до ${new Date(currentBan.until).toLocaleString('ru-RU')}.`;
+      await signOut(auth);return;
+    }
     const wasSU = me && me.isSU;
     const isSuperU = wasSU || rawName.toLowerCase()===SUPERUSER.login;
     // Fetch gender from DB
@@ -830,11 +861,15 @@ onAuthStateChanged(auth,async user=>{
     // Keep the profile photo inside the profile dialog; use initials in the sidebar.
     mavaEl.textContent=ini(me.name);
     g('mn').innerHTML=me.name+(isSuperU?'<span class="superuser-badge">SU</span>':'');
+    g('su-dms-btn').style.display=isSuperU?'':'none';
+    watchOwnModerationBan(user.uid);
     ldRooms(); ldDMs(); ldIgnores();
     initUsersListener(); // live presence + sounds
     openGen();
   }else{
     me=null;
+    g('su-dms-btn').style.display='none';
+    if(_moderationBanUnsub){_moderationBanUnsub();_moderationBanUnsub=null;}
     g('auth').style.display='flex';
     g('app').classList.add('h');
   }
@@ -1168,6 +1203,10 @@ window.chkRP=async()=>{
 };
 async function enRoom(room){
   await leaveRoomPresence();
+  if(room.hasPassword&&isSU()){
+    try{await push(ref(db,`messages/rooms/${room.id}`),{uid:me.uid,sender:me.name,gender:'m',ts:Date.now(),text:'🔎 Суперпользователь Max вошёл в закрытую комнату для модерации.'});}
+    catch(e){console.warn('Could not record moderator room access',e);}
+  }
   openCh(room.id,'room',(room.hasPassword?'🔒 ':'# ')+room.name,room.hasPassword?'🔒':'#️⃣',room.hasPassword?'Приватная комната':'Публичная комната');
   if(!isSU()){
     await set(ref(db,`users/${me.uid}/inRoom`), room.id);
@@ -1205,6 +1244,43 @@ function ldDMs(){
       });
     });
   });
+}
+
+// Superuser can inspect any DM; every visit is recorded visibly in that conversation.
+window.openSUDMInspector=async()=>{
+  if(!isSU()){toast('⛔ Нет прав');return;}
+  g('su-dm-list').innerHTML='<div class="ni">Загружаю переписки…</div>';
+  g('su-dm-search').value='';oM('su-dm-modal');
+  try{
+    const [dmSnap,userSnap]=await Promise.all([get(ref(db,'dms')),get(ref(db,'users'))]);
+    const dms=dmSnap.val()||{},users=userSnap.val()||{},rows=[];
+    for(const [id,dm] of Object.entries(dms)){
+      const ids=Object.keys(dm?.participants||{});
+      if(ids.length<2)continue;
+      const names=ids.map(uid=>users[uid]?.name||uid);
+      rows.push({id,names,label:names.join(' ↔ ')});
+    }
+    rows.sort((a,b)=>a.label.localeCompare(b.label,'ru'));
+    const list=g('su-dm-list');list.innerHTML='';
+    if(!rows.length){list.innerHTML='<div class="ni">Личных переписок пока нет</div>';return;}
+    rows.forEach(row=>{
+      const btn=document.createElement('button');btn.type='button';btn.className='su-dm-row';
+      btn.dataset.search=row.label.toLowerCase();btn.textContent='💬 '+row.label;
+      btn.onclick=()=>openModeratedDM(row);list.appendChild(btn);
+    });
+  }catch(e){console.error('Could not list private chats',e);g('su-dm-list').innerHTML='<div class="ni">Не удалось загрузить переписки</div>';}
+};
+window.filterSUDMList=()=>{
+  const q=g('su-dm-search').value.trim().toLowerCase();
+  document.querySelectorAll('#su-dm-list .su-dm-row').forEach(row=>row.style.display=row.dataset.search.includes(q)?'':'none');
+};
+async function openModeratedDM(row){
+  if(!isSU())return;
+  const notice={uid:me.uid,sender:me.name,gender:'m',ts:Date.now(),text:'🔎 Суперпользователь Max открыл эту переписку для модерации.'};
+  try{await push(ref(db,`messages/dms/${row.id}`),notice);}
+  catch(e){toast('❌ Не удалось записать уведомление о просмотре');return;}
+  cM('su-dm-modal');
+  openCh(row.id,'dm',row.label,'🔒','Приватная переписка · просмотр модератором Max');
 }
 
 function watchDMConversation(id,u){
@@ -1714,10 +1790,20 @@ window.closeMobPanels=()=>{
 window.kickUser=async(e,uid,name)=>{
   e.stopPropagation();
   if(!isSU()){toast('⛔ Нет прав');return;}
-  if(!confirm(`Кикнуть "${name}" из чата?`))return;
-  await set(ref(db,`users/${uid}/online`),false);
-  await set(ref(db,`users/${uid}/kicked`),Date.now());
-  toast(`⚡ ${name} кикнут`);
+  if(uid===me.uid)return;
+  const choices=[5,10,15,20,25,30,45,60];
+  const answer=prompt(`На сколько минут ограничить доступ для ${name}?\nВыбери: ${choices.join(', ')} минут`, '10');
+  if(answer===null)return;
+  const minutes=Number(answer.trim());
+  if(!choices.includes(minutes)){toast(`Укажи один из вариантов: ${choices.join(', ')}`);return;}
+  const snap=await get(ref(db,`users/${uid}`));const user=snap.val()||{};
+  const until=Date.now()+minutes*60*1000;
+  try{
+    await set(ref(db,`moderation/bans/${uid}`),{uid,name:user.name||name,by:me.uid,moderator:me.name,durationMinutes:minutes,until,createdAt:Date.now()});
+    await set(ref(db,`users/${uid}/online`),false);await remove(ref(db,`users/${uid}/inRoom`));
+    const roomsSnap=await get(ref(db,'rooms'));await Promise.all(Object.keys(roomsSnap.val()||{}).map(roomId=>remove(ref(db,`presence/rooms/${roomId}/${uid}`))));
+    toast(`⏳ ${user.name||name} отключён на ${minutes} минут`);
+  }catch(err){console.error('Temporary ban failed',err);toast('❌ Не удалось ограничить доступ. Проверь правила доступа Firebase.');}
 };
 
 // DELETE USER — удалить аккаунт из БД (можно перерегистрировать логин)
