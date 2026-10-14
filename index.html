@@ -64,6 +64,11 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .div::before,.div::after{content:'';flex:1;height:1px;background:var(--border);}
 #auth,#auth *{-webkit-app-region:no-drag!important;}
 .aw,.ab,.ac,.tabs,.f,.f label,.tab,.btn,.gender-btn,.f input{position:relative;z-index:5;pointer-events:auto;}
+.aw,.ac,.tabs,.f,.tab,.btn,.gender-btn,.f input{pointer-events:auto!important;touch-action:manipulation;}
+#auth{pointer-events:auto!important;z-index:1000!important;}
+#auth .ac{position:relative;z-index:1001!important;}
+#auth input{user-select:text;-webkit-user-select:text;}
+
 @media(min-width:661px){
   html,body{overflow:auto;}
   body{display:block;min-height:100vh;}
@@ -600,10 +605,10 @@ window.doUp=window.doUp||function(){
     el.addEventListener('click',function(e){ e.preventDefault(); fn(); });
     el.dataset.fallbackBound='1';
   }
-  bindClick('tab-in',function(){ if(!window.__authReady)window.swTab('in'); });
-  bindClick('tab-up',function(){ if(!window.__authReady)window.swTab('up'); });
-  bindClick('btn-in',function(){ if(!window.__authReady)window.doIn(); });
-  bindClick('btn-up',function(){ if(!window.__authReady)window.doUp(); });
+  bindClick('tab-in',function(){ window.swTab('in'); });
+  bindClick('tab-up',function(){ window.swTab('up'); });
+  bindClick('btn-in',function(){ window.doIn(); });
+  bindClick('btn-up',function(){ window.doUp(); });
 })();
 window.addEventListener('error',function(e){
   var text=(e&&e.message?String(e.message):'');
@@ -726,32 +731,10 @@ window.swTab=t=>{
 };
 
 function bindAuthUI(){
-  const bindClick=(id,fn)=>{
-    const el=g(id);
-    if(!el||el.dataset.bound==='1') return;
-    el.addEventListener('pointerdown',e=>{ e.stopPropagation(); });
-    el.addEventListener('mousedown',e=>{ e.stopPropagation(); });
-    el.addEventListener('click',e=>{ e.preventDefault(); fn(); });
-    el.dataset.bound='1';
-  };
-  bindClick('tab-in',()=>window.swTab('in'));
-  bindClick('tab-up',()=>window.swTab('up'));
-  bindClick('btn-in',()=>window.doIn());
-  bindClick('btn-up',()=>window.doUp());
-  document.querySelectorAll('#auth .f').forEach(wrap=>{
-    if(wrap.dataset.focusBound==='1') return;
-    wrap.addEventListener('mousedown',e=>{ e.stopPropagation(); });
-    wrap.addEventListener('click',()=>{
-      const input=wrap.querySelector('input');
-      if(input) input.focus();
-    });
-    wrap.dataset.focusBound='1';
-  });
+  // Keep native inputs and inline button actions untouched; only support Enter to submit.
   [['li',()=>window.doIn()],['lp',()=>window.doIn()],['ri',()=>window.doUp()],['rp',()=>window.doUp()]].forEach(([id,fn])=>{
     const el=g(id);
     if(!el||el.dataset.enterBound==='1') return;
-    el.addEventListener('mousedown',e=>{ e.stopPropagation(); });
-    el.addEventListener('click',e=>{ e.stopPropagation(); });
     el.addEventListener('keydown',e=>{
       if(e.key==='Enter'){
         e.preventDefault();
@@ -819,12 +802,14 @@ window.__authReady=true;
 window.doOut=async()=>{
   stopHeartbeat();
   if(_staleTimer){ clearInterval(_staleTimer); _staleTimer=null; }
-  await leaveRoomPresence();
-  if(me && !isSU()) await remove(ref(db,`users/${me.uid}/inRoom`));
-  if(me) await set(ref(db,`users/${me.uid}/online`),false);
+  // Presence cleanup is best effort; it must never prevent switching accounts.
+  try{ await leaveRoomPresence(); }catch(e){ console.warn('Room presence cleanup failed during sign-out',e); }
+  try{
+    if(me && !isSU()) await remove(ref(db,`users/${me.uid}/inRoom`));
+    if(me) await set(ref(db,`users/${me.uid}/online`),false);
+  }catch(e){ console.warn('Presence cleanup failed during sign-out',e); }
   await signOut(auth);
 };
-
 // AUTH STATE
 onAuthStateChanged(auth,async user=>{
   if(user){
