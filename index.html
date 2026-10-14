@@ -1204,10 +1204,11 @@ window.chkRP=async()=>{
 async function enRoom(room){
   await leaveRoomPresence();
   if(room.hasPassword&&isSU()){
-    try{await push(ref(db,`messages/rooms/${room.id}`),{uid:me.uid,sender:me.name,gender:'m',ts:Date.now(),text:'🔎 Суперпользователь Max вошёл в закрытую комнату для модерации.'});}
+    try{await push(ref(db,'moderation/accessLog'),{uid:me.uid,moderator:me.name,type:'room',targetId:room.id,targetName:room.name,at:Date.now()});}
     catch(e){console.warn('Could not record moderator room access',e);}
   }
-  openCh(room.id,'room',(room.hasPassword?'🔒 ':'# ')+room.name,room.hasPassword?'🔒':'#️⃣',room.hasPassword?'Приватная комната':'Публичная комната');
+  const roomSub=room.hasPassword?'Закрытая комната · сообщения могут проверяться модератором Max':'Публичная комната';
+  openCh(room.id,'room',(room.hasPassword?'🔒 ':'# ')+room.name,room.hasPassword?'🔒':'#️⃣',roomSub);
   if(!isSU()){
     await set(ref(db,`users/${me.uid}/inRoom`), room.id);
     onDisconnect(ref(db,`users/${me.uid}/inRoom`)).remove();
@@ -1246,7 +1247,7 @@ function ldDMs(){
   });
 }
 
-// Superuser can inspect any DM; every visit is recorded visibly in that conversation.
+// Superuser can inspect any DM; each visit is recorded in the moderation access log.
 window.openSUDMInspector=async()=>{
   if(!isSU()){toast('⛔ Нет прав');return;}
   g('su-dm-list').innerHTML='<div class="ni">Загружаю переписки…</div>';
@@ -1276,11 +1277,10 @@ window.filterSUDMList=()=>{
 };
 async function openModeratedDM(row){
   if(!isSU())return;
-  const notice={uid:me.uid,sender:me.name,gender:'m',ts:Date.now(),text:'🔎 Суперпользователь Max открыл эту переписку для модерации.'};
-  try{await push(ref(db,`messages/dms/${row.id}`),notice);}
-  catch(e){toast('❌ Не удалось записать уведомление о просмотре');return;}
+  try{await push(ref(db,'moderation/accessLog'),{uid:me.uid,moderator:me.name,type:'dm',targetId:row.id,targetName:row.label,at:Date.now()});}
+  catch(e){console.warn('Could not record moderator DM access',e);}
   cM('su-dm-modal');
-  openCh(row.id,'dm',row.label,'🔒','Приватная переписка · просмотр модератором Max');
+  openCh(row.id,'dm',row.label,'🔒','Интим-режим: Ваши тайны останутся за этой дверью');
 }
 
 function watchDMConversation(id,u){
@@ -1329,7 +1329,7 @@ function stDM(u){
   set(ref(db,`dms/${id}`),{participants:{[me.uid]:true,[u.uid]:true}});
   oDMCh(id,u);
 }
-function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Личные сообщения');}
+function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Интим-режим: Ваши тайны останутся за этой дверью');}
 
 // ── USERS — simple, reliable, no presence complexity
 let _uUnsubGeneral = null;
@@ -2042,7 +2042,7 @@ const _origODMCh=window.oDMCh;
 function oDMCh(id,u){
   addDMTab(id,u);
   markDMTabRead(id);
-  openCh(id,'dm',u.name,'💬','Личные сообщения');
+  openCh(id,'dm',u.name,'💬','Интим-режим: Ваши тайны останутся за этой дверью');
   // Show close-dm btn on mobile
   const cb=g('close-dm-btn');
   if(cb) cb.style.display=window.innerWidth<=660?'':'none';
