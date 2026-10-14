@@ -667,7 +667,6 @@ const cfg = {
 const fbApp = initializeApp(cfg);
 const auth  = getAuth(fbApp);
 const db    = getDatabase(fbApp);
-window.__authReady=true;
 window.__authLoadError='';
 
 let me=null, curCh=null, curType=null, msgsRef=null;
@@ -814,6 +813,7 @@ window.doIn=async()=>{
     }
   }finally{_authActionBusy=false;if(button)button.disabled=false;}
 };
+window.__authReady=true;
 
 // LOGOUT
 window.doOut=async()=>{
