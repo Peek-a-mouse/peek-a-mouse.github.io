@@ -230,6 +230,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .ov.open{opacity:1;pointer-events:all;}
 .mo{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:380px;box-shadow:0 20px 50px #1c1b1818;transform:scale(.95) translateY(8px);transition:transform .2s;}
 .ov.open .mo{transform:scale(1) translateY(0);}
+.ov.open .mo{position:relative;z-index:1;pointer-events:auto;}
+#m-cr input,#m-cr button{pointer-events:auto;touch-action:manipulation;}
 .mt{font-size:16px;font-weight:700;margin-bottom:16px;}
 .mr{display:flex;gap:7px;margin-top:14px;}
 .mr .btn{flex:1;padding:9px;font-size:14px;}
@@ -507,11 +509,11 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
     <div class="mt">Создать комнату</div>
     <div class="f"><label>Название комнаты</label><input id="crn" type="text" placeholder="gaming, кино, работа..." maxlength="32"></div>
     <div class="tr"><span>🔒 Поставить пароль</span>
-      <button class="tg" id="crt" onclick="this.classList.toggle('on');g('crpf').classList.toggle('hidden',!this.classList.contains('on'))"></button>
+      <button type="button" class="tg" id="crt" aria-label="Включить пароль"></button>
     </div>
     <div class="f hidden" id="crpf"><label>Пароль</label><input id="crp" type="password" placeholder="придумай пароль"></div>
     <div class="fe" id="cre"></div>
-    <div class="mr"><button class="btn btn-o" onclick="cM('m-cr')">Отмена</button><button class="btn" onclick="crRoom()">Создать</button></div>
+    <div class="mr"><button type="button" class="btn btn-o" id="cr-cancel-btn">Отмена</button><button type="button" class="btn" id="cr-create-btn">Создать</button></div>
   </div>
 </div>
 
@@ -598,10 +600,10 @@ window.doUp=window.doUp||function(){
     el.addEventListener('click',function(e){ e.preventDefault(); fn(); });
     el.dataset.fallbackBound='1';
   }
-  bindClick('tab-in',function(){ window.swTab('in'); });
-  bindClick('tab-up',function(){ window.swTab('up'); });
-  bindClick('btn-in',function(){ window.doIn(); });
-  bindClick('btn-up',function(){ window.doUp(); });
+  bindClick('tab-in',function(){ if(!window.__authReady)window.swTab('in'); });
+  bindClick('tab-up',function(){ if(!window.__authReady)window.swTab('up'); });
+  bindClick('btn-in',function(){ if(!window.__authReady)window.doIn(); });
+  bindClick('btn-up',function(){ if(!window.__authReady)window.doUp(); });
 })();
 window.addEventListener('error',function(e){
   var text=(e&&e.message?String(e.message):'');
@@ -763,7 +765,9 @@ function bindAuthUI(){
 bindAuthUI();
 
 // REGISTER
+let _authActionBusy=false;
 window.doUp=async()=>{
+  if(_authActionBusy)return;
   const rawLogin=g('ri').value.trim().replace(/[^a-zа-яёA-ZА-ЯЁ0-9_]/gi,'');
   const login=rawLogin.toLowerCase().replace(/[^a-zа-яё0-9_]/gi,'');
   const displayName=rawLogin; // preserve original casing
@@ -771,20 +775,23 @@ window.doUp=async()=>{
   if(!login) return err.textContent='Придумай логин';
   if(pass.length<6) return err.textContent='Пароль минимум 6 символов';
   const gender = regGender;
+  _authActionBusy=true;const button=g('btn-up');if(button)button.disabled=true;
   try{
     const cred=await createUserWithEmailAndPassword(auth,login+'@chatwave.app',pass);
     await updateProfile(cred.user,{displayName:displayName});
     await set(ref(db,`users/${cred.user.uid}`),{uid:cred.user.uid,name:displayName,gender,online:true,at:serverTimestamp()});
     err.textContent='';
-  }catch(e){err.textContent=fErr(e.code);}
+  }catch(e){err.textContent=fErr(e.code);}finally{_authActionBusy=false;if(button)button.disabled=false;}
 };
 
 // LOGIN
 window.doIn=async()=>{
+  if(_authActionBusy)return;
   const rawLogin=g('li').value.trim().toLowerCase().replace(/\s+/g,'_');
   const pass=g('lp').value; const err=g('le');
   if(!rawLogin||!pass) return err.textContent='Введи логин и пароль';
   const isSuperLogin = rawLogin===SUPERUSER.login && pass===SUPERUSER.password;
+  _authActionBusy=true;const button=g('btn-in');if(button)button.disabled=true;
   try{
     const cred=await signInWithEmailAndPassword(auth,rawLogin+'@chatwave.app',pass);
     if(isSuperLogin){
@@ -805,7 +812,7 @@ window.doIn=async()=>{
     } else {
       err.textContent=fErr(e.code);
     }
-  }
+  }finally{_authActionBusy=false;if(button)button.disabled=false;}
 };
 
 // LOGOUT
@@ -1137,19 +1144,35 @@ window.rmF=(i,btn)=>{files[i]=null;btn.parentElement.remove();files=files.filter
 window.openCR=()=>{
   g('crn').value=''; g('crp').value=''; g('cre').textContent='';
   const t=g('crt'); t.classList.remove('on'); g('crpf').classList.add('hidden');
+  const createBtn=g('cr-create-btn');if(createBtn){createBtn.disabled=false;createBtn.textContent='Создать';}
   oM('m-cr');
+  requestAnimationFrame(()=>g('crn')?.focus());
 };
+g('crt').addEventListener('click',()=>{
+  const enabled=g('crt').classList.toggle('on');
+  g('crpf').classList.toggle('hidden',!enabled);
+  g('crt').setAttribute('aria-pressed',String(enabled));
+  if(enabled)requestAnimationFrame(()=>g('crp')?.focus());
+});
+g('cr-cancel-btn').addEventListener('click',()=>cM('m-cr'));
+g('cr-create-btn').addEventListener('click',()=>window.crRoom());
+let _roomCreateBusy=false;
 window.crRoom=async()=>{
+  if(_roomCreateBusy)return;
   const name=g('crn').value.trim(); const hasP=g('crt').classList.contains('on');
-  const pass=g('crp').value; const err=g('cre');
+  const pass=g('crp').value; const err=g('cre'),button=g('cr-create-btn');
+  if(!me){err.textContent='Сначала войди в аккаунт';return;}
   if(!name)return err.textContent='Введи название';
   if(hasP&&!pass)return err.textContent='Введи пароль';
-  const r=push(ref(db,'rooms'));
-  const d={id:r.key,name,createdBy:me.uid,at:serverTimestamp(),hasPassword:hasP};
-  if(hasP)d.password=pass;
-  await set(r,d);
-  cM('m-cr'); toast(`✅ Комната "${name}" создана`);
-  joinRoom(d);
+  _roomCreateBusy=true;button.disabled=true;button.textContent='Создаю…';err.textContent='';
+  try{
+    const r=push(ref(db,'rooms'));
+    const d={id:r.key,name,createdBy:me.uid,at:serverTimestamp(),hasPassword:hasP};
+    if(hasP)d.password=pass;
+    await set(r,d);
+    cM('m-cr');toast(`✅ Комната "${name}" создана`);joinRoom(d);
+  }catch(e){console.error('Room creation failed',e);err.textContent='Не удалось создать комнату. Проверь подключение и правила Firebase.';}
+  finally{_roomCreateBusy=false;button.disabled=false;button.textContent='Создать';}
 };
 function ldRooms(){
   onValue(ref(db,'rooms'),snap=>{
@@ -1280,7 +1303,7 @@ async function openModeratedDM(row){
   try{await push(ref(db,'moderation/accessLog'),{uid:me.uid,moderator:me.name,type:'dm',targetId:row.id,targetName:row.label,at:Date.now()});}
   catch(e){console.warn('Could not record moderator DM access',e);}
   cM('su-dm-modal');
-  openCh(row.id,'dm',row.label,'🔒','Интим-режим: Ваши тайны останутся за этой дверью');
+  openCh(row.id,'dm',row.label,'🔒','Личные сообщения могут проверяться модератором Max ради безопасности');
 }
 
 function watchDMConversation(id,u){
@@ -1329,7 +1352,7 @@ function stDM(u){
   set(ref(db,`dms/${id}`),{participants:{[me.uid]:true,[u.uid]:true}});
   oDMCh(id,u);
 }
-function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Интим-режим: Ваши тайны останутся за этой дверью');}
+function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Личные сообщения могут проверяться модератором Max ради безопасности');}
 
 // ── USERS — simple, reliable, no presence complexity
 let _uUnsubGeneral = null;
@@ -2042,7 +2065,7 @@ const _origODMCh=window.oDMCh;
 function oDMCh(id,u){
   addDMTab(id,u);
   markDMTabRead(id);
-  openCh(id,'dm',u.name,'💬','Интим-режим: Ваши тайны останутся за этой дверью');
+  openCh(id,'dm',u.name,'💬','Личные сообщения могут проверяться модератором Max ради безопасности');
   // Show close-dm btn on mobile
   const cb=g('close-dm-btn');
   if(cb) cb.style.display=window.innerWidth<=660?'':'none';
