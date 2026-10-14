@@ -514,11 +514,11 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
     <div class="mt">Создать комнату</div>
     <div class="f"><label>Название комнаты</label><input id="crn" type="text" placeholder="gaming, кино, работа..." maxlength="32"></div>
     <div class="tr"><span>🔒 Поставить пароль</span>
-      <button type="button" class="tg" id="crt" aria-label="Включить пароль"></button>
+      <button type="button" class="tg" id="crt" aria-label="Включить пароль" aria-pressed="false" onclick="this.classList.toggle('on');document.getElementById('crpf').classList.toggle('hidden',!this.classList.contains('on'));this.setAttribute('aria-pressed',String(this.classList.contains('on')));if(this.classList.contains('on'))document.getElementById('crp').focus()"></button>
     </div>
     <div class="f hidden" id="crpf"><label>Пароль</label><input id="crp" type="password" placeholder="придумай пароль"></div>
     <div class="fe" id="cre"></div>
-    <div class="mr"><button type="button" class="btn btn-o" id="cr-cancel-btn">Отмена</button><button type="button" class="btn" id="cr-create-btn">Создать</button></div>
+    <div class="mr"><button type="button" class="btn btn-o" id="cr-cancel-btn" onclick="document.getElementById('m-cr').classList.remove('open')">Отмена</button><button type="button" class="btn" id="cr-create-btn" onclick="if(typeof window.crRoom==='function')window.crRoom();else document.getElementById('cre').textContent='Форма создания не загрузилась. Обнови страницу.'">Создать</button></div>
   </div>
 </div>
 
@@ -1133,14 +1133,6 @@ window.openCR=()=>{
   oM('m-cr');
   requestAnimationFrame(()=>g('crn')?.focus());
 };
-g('crt').addEventListener('click',()=>{
-  const enabled=g('crt').classList.toggle('on');
-  g('crpf').classList.toggle('hidden',!enabled);
-  g('crt').setAttribute('aria-pressed',String(enabled));
-  if(enabled)requestAnimationFrame(()=>g('crp')?.focus());
-});
-g('cr-cancel-btn').addEventListener('click',()=>cM('m-cr'));
-g('cr-create-btn').addEventListener('click',()=>window.crRoom());
 let _roomCreateBusy=false;
 window.crRoom=async()=>{
   if(_roomCreateBusy)return;
