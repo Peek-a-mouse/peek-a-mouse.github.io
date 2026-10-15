@@ -235,8 +235,12 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .ov.open{opacity:1;pointer-events:all;}
 .mo{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:380px;box-shadow:0 20px 50px #1c1b1818;transform:scale(.95) translateY(8px);transition:transform .2s;}
 .ov.open .mo{transform:scale(1) translateY(0);}
-.ov.open .mo{position:relative;z-index:1;pointer-events:auto;}
-#m-cr input,#m-cr button{pointer-events:auto;touch-action:manipulation;}
+
+/* Keep the room dialog above page layers and make its controls receive mouse clicks. */
+#m-cr{z-index:2147483000;isolation:isolate;backdrop-filter:none;-webkit-backdrop-filter:none;}
+#m-cr .mo{position:relative;z-index:1;isolation:isolate;pointer-events:auto;transform:none;transition:none;}
+#m-cr .mo button,#m-cr .mo input,#m-cr .mo label,#m-cr .mo span{pointer-events:auto;}
+#m-cr .mo button{position:relative;z-index:2;cursor:pointer;touch-action:manipulation;}
 .mt{font-size:16px;font-weight:700;margin-bottom:16px;}
 .mr{display:flex;gap:7px;margin-top:14px;}
 .mr .btn{flex:1;padding:9px;font-size:14px;}
