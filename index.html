@@ -236,14 +236,15 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 .mo{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:380px;box-shadow:0 20px 50px #1c1b1818;transform:scale(.95) translateY(8px);transition:transform .2s;}
 .ov.open .mo{transform:scale(1) translateY(0);}
 
-/* Keep the room dialog above page layers and make its controls receive mouse clicks. */
+/* Keep hidden modal content out of mouse hit testing; enable clicks only while a dialog is open. */
+.ov:not(.open) .mo,.ov:not(.open) .mo *{pointer-events:none!important;}
+.ov.open .mo,.ov.open .mo *{pointer-events:auto!important;}
+/* Avoid compositor hit-test bugs for room dialogs. */
 #m-cr{z-index:2147483000;isolation:isolate;backdrop-filter:none;-webkit-backdrop-filter:none;}
-#m-cr .mo{position:relative;z-index:1;isolation:isolate;pointer-events:auto;transform:none;transition:none;}
-#m-cr .mo button,#m-cr .mo input,#m-cr .mo label,#m-cr .mo span{pointer-events:auto;}
+#m-cr .mo{position:relative;z-index:1;isolation:isolate;transform:none;transition:none;}
 #m-cr .mo button{position:relative;z-index:2;cursor:pointer;touch-action:manipulation;}
 #m-rp{z-index:2147483000;isolation:isolate;backdrop-filter:none;-webkit-backdrop-filter:none;}
-#m-rp .mo{position:relative;z-index:1;isolation:isolate;pointer-events:auto;transform:none;transition:none;}
-#m-rp .mo,#m-rp .mo *{pointer-events:auto!important;}
+#m-rp .mo{position:relative;z-index:1;isolation:isolate;transform:none;transition:none;}
 #m-rp .mo button{position:relative;z-index:2;cursor:pointer;touch-action:manipulation;}
 .mt{font-size:16px;font-weight:700;margin-bottom:16px;}
 .mr{display:flex;gap:7px;margin-top:14px;}
