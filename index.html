@@ -817,6 +817,7 @@ window.doOut=async()=>{
     if(me && !isSU()) await remove(ref(db,`users/${me.uid}/inRoom`));
     if(me) await set(ref(db,`users/${me.uid}/online`),false);
     if(me) await set(ref(db,`users/${me.uid}/hb`),0);
+    if(me) await set(ref(db,`users/${me.uid}/hb`),0);
   }catch(e){ console.warn('Presence cleanup failed during sign-out',e); }
   await signOut(auth);
 };
@@ -1380,7 +1381,7 @@ function initUsersListener(){
     Object.values(users).forEach(u=>{
       if(!u||!u.uid||!u.name) return;
       if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
-      const next=!!u.online;
+      const next=isUserCurrentlyOnline(u);
       const prev=!!_onlineState[u.uid];
       nextState[u.uid]=next;
       if(_onlineSeeded && prev!==next){
@@ -1437,10 +1438,10 @@ function renderUList(usersMap, roomId, isRoom){
 
   if(isRoom && roomId){
     // Show users who are present in this specific room
-    list = list.filter(u => u.inRoom === roomId);
+    list = list.filter(u => isUserCurrentlyOnline(u) && u.inRoom === roomId);
   } else {
-    // General: online only
-    list = list.filter(u => u.online);
+    // General: online only; accept fresh heartbeat from older open tabs too.
+    list = list.filter(u => isUserCurrentlyOnline(u));
   }
 
   l.innerHTML = '';
@@ -1489,6 +1490,14 @@ window.addEventListener('beforeunload',()=>{ forceOffline(); });
 // User writes timestamp every 30s. If hb is older than 2 min → mark offline.
 const HB_INTERVAL = 30000;   // 30 seconds
 const HB_TIMEOUT  = 120000;  // 2 minutes = stale threshold
+function isUserCurrentlyOnline(user){
+  if(!user) return false;
+  if(user.hb!==undefined && user.hb!==null){
+    const heartbeat=Number(user.hb)||0;
+    return heartbeat>0 && Date.now()-heartbeat<=HB_TIMEOUT;
+  }
+  return !!user.online;
+}
 let _hbTimer = null;
 
 function startHeartbeat(){
@@ -1500,6 +1509,12 @@ function startHeartbeat(){
 function stopHeartbeat(){
   if(_hbTimer){ clearInterval(_hbTimer); _hbTimer=null; }
 }
+function resumePresence(){
+  if(document.visibilityState!=='visible' || !me || isSU()) return;
+  startHeartbeat();
+}
+window.addEventListener('pageshow',resumePresence);
+document.addEventListener('visibilitychange',resumePresence);
 async function _writeHB(){
   if(!me || isSU()) return;
   const presence={uid:me.uid,name:me.name,online:true,hb:Date.now()};
@@ -1520,11 +1535,18 @@ async function _sweepStale(){
     const users = snap.val()||{};
     const now = Date.now();
     for(const u of Object.values(users)){
-      if(!u || !u.uid || isSU && u.name && u.name.toLowerCase()===SUPERUSER.login) continue;
-      if(!u.online) continue; // already offline, skip
-      const hb = u.hb || 0;
-      if(hb === 0 || (now - hb) > HB_TIMEOUT){
-        // Stale — force offline
+      if(!u || !u.uid || (u.name && u.name.toLowerCase()===SUPERUSER.login)) continue;
+      const hb = Number(u.hb) || 0;
+      const fresh = hb > 0 && (now - hb) <= HB_TIMEOUT;
+      if(fresh){
+        // Repair stale online:false values left by older client versions.
+        if(!u.online){
+          try{ await set(ref(db,`users/${u.uid}/online`),true); }catch(e){}
+        }
+        continue;
+      }
+      if(u.online){
+        // No recent heartbeat — mark this account offline and clear room presence.
         try{ await set(ref(db,`users/${u.uid}/online`),false); }catch(e){}
         try{ await remove(ref(db,`users/${u.uid}/inRoom`)); }catch(e){}
       }
