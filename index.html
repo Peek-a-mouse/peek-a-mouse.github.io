@@ -232,7 +232,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 
 /* ── MODALS ── */
 .ov{position:fixed;inset:0;z-index:200;background:#1c1b1842;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
-.ov.open{opacity:1;pointer-events:all;}
+.ov.open{opacity:1;pointer-events:auto;}
 .mo{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:380px;box-shadow:0 20px 50px #1c1b1818;transform:scale(.95) translateY(8px);transition:transform .2s;}
 .ov.open .mo{transform:scale(1) translateY(0);}
 
@@ -243,7 +243,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 #m-cr .mo button{position:relative;z-index:2;cursor:pointer;touch-action:manipulation;}
 #m-rp{z-index:2147483000;isolation:isolate;backdrop-filter:none;-webkit-backdrop-filter:none;}
 #m-rp .mo{position:relative;z-index:1;isolation:isolate;pointer-events:auto;transform:none;transition:none;}
-#m-rp .mo button,#m-rp .mo input,#m-rp .mo label,#m-rp .mo span{pointer-events:auto;}
+#m-rp .mo,#m-rp .mo *{pointer-events:auto!important;}
 #m-rp .mo button{position:relative;z-index:2;cursor:pointer;touch-action:manipulation;}
 .mt{font-size:16px;font-weight:700;margin-bottom:16px;}
 .mr{display:flex;gap:7px;margin-top:14px;}
