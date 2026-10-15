@@ -522,7 +522,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
   <div class="mo">
     <div class="mt">Создать комнату</div>
     <div class="f"><label>Название комнаты</label><input id="crn" type="text" placeholder="gaming, кино, работа..." maxlength="32"></div>
-    <div class="tr"><span>🔒 Поставить пароль</span>
+    <div class="tr"><span>🔑 Поставить пароль</span>
       <button type="button" class="tg" id="crt" aria-label="Включить пароль" aria-pressed="false" onclick="this.classList.toggle('on');document.getElementById('crpf').classList.toggle('hidden',!this.classList.contains('on'));this.setAttribute('aria-pressed',String(this.classList.contains('on')));if(this.classList.contains('on'))document.getElementById('crp').focus()"></button>
     </div>
     <div class="f hidden" id="crpf"><label>Пароль</label><input id="crp" type="password" placeholder="придумай пароль"></div>
@@ -534,7 +534,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 <!-- MODAL: room password -->
 <div class="ov" id="m-rp">
   <div class="mo">
-    <div class="mt">🔒 Комната защищена паролем</div>
+    <div class="mt">🔑 Комната защищена паролем</div>
     <div class="f"><label>Введите пароль</label><input id="epi" type="password" placeholder="••••••••"></div>
     <div class="fe" id="epe"></div>
     <div class="mr"><button class="btn btn-o" onclick="cM('m-rp')">Отмена</button><button class="btn" onclick="chkRP()">Войти</button></div>
@@ -1168,9 +1168,9 @@ function ldRooms(){
     validRooms.forEach(room=>{
       const canDel = me && (isSU() || room.createdBy===me.uid);
       const el=document.createElement('div'); el.className='ci'; el.id='chi-'+room.id;
-      el.innerHTML=`<div class="cico">${room.hasPassword?'🔒':'#️⃣'}</div>
+      el.innerHTML=`<div class="cico">${room.hasPassword?'🔑':'🔓'}</div>
         <div class="ci-inf"><div class="cn">${esc(room.name)}</div>
-        <div class="cp">${room.hasPassword?'Приватная комната':'Свободный вход в зону искушения. Входи без стука'}</div></div>`
+        <div class="cp">${room.hasPassword?'Свободный вход в зону искушения. Входи без стука':'Приватная комната'}</div></div>`
         +(canDel?`<button class="del-btn" title="Удалить комнату" onclick="delRoom(event,'${room.id}','${esc(room.name)}')">🗑</button>`:'');
       el.onclick=(e)=>{ if(!e.target.closest('.del-btn')) joinRoom(room); };
       l.appendChild(el);
@@ -1217,7 +1217,7 @@ async function enRoom(room){
     catch(e){console.warn('Could not record moderator room access',e);}
   }
   const roomSub=room.hasPassword?'Комната заперта. Здесь начинается зона без правил и табу':'Публичная комната';
-  openCh(room.id,'room',(room.hasPassword?'🔒 ':'# ')+room.name,room.hasPassword?'🔒':'#️⃣',roomSub);
+  openCh(room.id,'room',(room.hasPassword?'🔑 ':'# ')+room.name,room.hasPassword?'🔑':'🔓',roomSub);
   if(!isSU()){
     await set(ref(db,`users/${me.uid}/inRoom`), room.id);
     onDisconnect(ref(db,`users/${me.uid}/inRoom`)).remove();
