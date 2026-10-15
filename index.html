@@ -904,14 +904,21 @@ function openCh(id,type,title,icon,sub){
   get(channelRef).then(initialSnap=>{
     if(msgsRef!==channelRef)return;
     const knownKeys=new Set();
-    initialSnap.forEach(child=>knownKeys.add(child.key));
+    initialSnap.forEach(child=>{
+      knownKeys.add(child.key);
+      const m=child.val();
+      if(!m || isIgnored(m.uid)) return;
+      try{renderMsg(m,c);}catch(err){console.error('Could not render stored message',err);}
+    });
+    c.scrollTop=c.scrollHeight;
     onChildAdded(channelRef,snap=>{
-      const m=snap.val();
-      const isNew=!knownKeys.has(snap.key);
+      if(knownKeys.has(snap.key))return;
       knownKeys.add(snap.key);
-      if(isIgnored(m.uid))return;
-      renderMsg(m,c);c.scrollTop=c.scrollHeight;
-      if(isNew&&m.uid!==me?.uid){
+      const m=snap.val();
+      if(!m || isIgnored(m.uid))return;
+      try{renderMsg(m,c);}catch(err){console.error('Could not render new message',err);return;}
+      c.scrollTop=c.scrollHeight;
+      if(m.uid!==me?.uid){
         if(type==='general'||type==='room')playGeneralSound();
         if(type==='dm')playDMSound();
         if(type==='dm'&&curCh!==id)markDMTabUnread(id);
@@ -931,8 +938,8 @@ function openCh(id,type,title,icon,sub){
       incoming.forEach(([key,m])=>{
         if(fallbackKeys.has(key))return;
         fallbackKeys.add(key);
-        if(isIgnored(m.uid))return;
-        renderMsg(m,c);
+        if(!m || isIgnored(m.uid))return;
+        try{renderMsg(m,c);}catch(err){console.error('Could not render message from fallback listener',err);return;}
         if(!isInitial && m.uid!==me?.uid){
           if(type==='general'||type==='room')playGeneralSound();
           if(type==='dm')playDMSound();
