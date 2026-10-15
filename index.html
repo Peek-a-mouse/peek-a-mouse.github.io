@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+Двое - это уже секрет. Время сбросить всё лишнее<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -1170,7 +1170,7 @@ function ldRooms(){
       const el=document.createElement('div'); el.className='ci'; el.id='chi-'+room.id;
       el.innerHTML=`<div class="cico">${room.hasPassword?'🔒':'#️⃣'}</div>
         <div class="ci-inf"><div class="cn">${esc(room.name)}</div>
-        <div class="cp">${room.hasPassword?'Приватная комната':'Публичная комната'}</div></div>`
+        <div class="cp">${room.hasPassword?'Приватная комната':'Свободный вход в зону искушения. Входи без стука'}</div></div>`
         +(canDel?`<button class="del-btn" title="Удалить комнату" onclick="delRoom(event,'${room.id}','${esc(room.name)}')">🗑</button>`:'');
       el.onclick=(e)=>{ if(!e.target.closest('.del-btn')) joinRoom(room); };
       l.appendChild(el);
@@ -1216,7 +1216,7 @@ async function enRoom(room){
     try{await push(ref(db,'moderation/accessLog'),{uid:me.uid,moderator:me.name,type:'room',targetId:room.id,targetName:room.name,at:Date.now()});}
     catch(e){console.warn('Could not record moderator room access',e);}
   }
-  const roomSub=room.hasPassword?'Закрытая комната · сообщения могут проверяться модератором Max':'Публичная комната';
+  const roomSub=room.hasPassword?'Комната заперта. Здесь начинается зона без правил и табу':'Публичная комната';
   openCh(room.id,'room',(room.hasPassword?'🔒 ':'# ')+room.name,room.hasPassword?'🔒':'#️⃣',roomSub);
   if(!isSU()){
     await set(ref(db,`users/${me.uid}/inRoom`), room.id);
@@ -1289,7 +1289,7 @@ async function openModeratedDM(row){
   try{await push(ref(db,'moderation/accessLog'),{uid:me.uid,moderator:me.name,type:'dm',targetId:row.id,targetName:row.label,at:Date.now()});}
   catch(e){console.warn('Could not record moderator DM access',e);}
   cM('su-dm-modal');
-  openCh(row.id,'dm',row.label,'🔒','Личные сообщения могут проверяться модератором Max ради безопасности');
+  openCh(row.id,'dm',row.label,'💬','Двое - это уже секрет. Время сбросить всё лишнее');
 }
 
 function watchDMConversation(id,u){
@@ -1338,7 +1338,7 @@ function stDM(u){
   set(ref(db,`dms/${id}`),{participants:{[me.uid]:true,[u.uid]:true}});
   oDMCh(id,u);
 }
-function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Личные сообщения могут проверяться модератором Max ради безопасности');}
+function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Двое - это уже секрет. Время сбросить всё лишнее');}
 
 // ── USERS — simple, reliable, no presence complexity
 let _uUnsubGeneral = null;
@@ -2051,7 +2051,7 @@ const _origODMCh=window.oDMCh;
 function oDMCh(id,u){
   addDMTab(id,u);
   markDMTabRead(id);
-  openCh(id,'dm',u.name,'💬','Личные сообщения могут проверяться модератором Max ради безопасности');
+  openCh(id,'dm',u.name,'💬','Двое - это уже секрет. Время сбросить всё лишнее');
   // Show close-dm btn on mobile
   const cb=g('close-dm-btn');
   if(cb) cb.style.display=window.innerWidth<=660?'':'none';
