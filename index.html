@@ -652,9 +652,9 @@ const getDatabase = app => firebase.database(app);
 const ref = (db,path) => db.ref(path);
 const push = (r,val) => val===undefined ? r.push() : r.push(val);
 const set = (r,val) => r.set(val);
-const onValue = (r,cb) => r.on('value',snap=>cb(snap));
+const onValue = (r,cb,onError) => r.on('value',snap=>cb(snap),onError);
 const off = r => r.off();
-const onChildAdded = (r,cb) => r.on('child_added',snap=>cb(snap));
+const onChildAdded = (r,cb,onError) => r.on('child_added',snap=>cb(snap),onError);
 const serverTimestamp = () => firebase.database.ServerValue.TIMESTAMP;
 const query = (r,...ops) => ops.reduce((acc,op)=>op(acc),r);
 const orderByChild = key => r => r.orderByChild(key);
@@ -894,6 +894,12 @@ function openCh(id,type,title,icon,sub){
   const path=type==='general'?'messages/general':type==='room'?`messages/rooms/${id}`:`messages/dms/${id}`;
   const channelRef=query(ref(db,path),orderByChild('ts'),limitToLast(200));
   msgsRef=channelRef;
+  const reportReadError=err=>{
+    console.error('Realtime Database message listener failed',err);
+    if(msgsRef===channelRef && curType===type && curCh===id){
+      toast(`❌ Не удалось загрузить сообщения${err?.code?`: ${err.code}`:''}. Проверьте доступ Firebase.`,7000);
+    }
+  };
   // Seed existing keys before the live listener, so history/reconnect events stay silent.
   get(channelRef).then(initialSnap=>{
     if(msgsRef!==channelRef)return;
@@ -910,7 +916,7 @@ function openCh(id,type,title,icon,sub){
         if(type==='dm')playDMSound();
         if(type==='dm'&&curCh!==id)markDMTabUnread(id);
       }
-    });
+    },reportReadError);
   }).catch(err=>{
     if(msgsRef!==channelRef)return;
     console.warn('Could not seed chat history before listening',err);
@@ -933,7 +939,7 @@ function openCh(id,type,title,icon,sub){
         }
       });
       c.scrollTop=c.scrollHeight;
-    });
+    },reportReadError);
   });
   listenTyping(id);
   // Show clear-history button for SU in general chat, or for SU/room owner in room
