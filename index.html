@@ -1,4 +1,4 @@
-Двое - это уже секрет. Время сбросить всё лишнее<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -522,7 +522,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
   <div class="mo">
     <div class="mt">Создать комнату</div>
     <div class="f"><label>Название комнаты</label><input id="crn" type="text" placeholder="gaming, кино, работа..." maxlength="32"></div>
-    <div class="tr"><span>🔑 Поставить пароль</span>
+    <div class="tr"><span>🔒 Поставить пароль</span>
       <button type="button" class="tg" id="crt" aria-label="Включить пароль" aria-pressed="false" onclick="this.classList.toggle('on');document.getElementById('crpf').classList.toggle('hidden',!this.classList.contains('on'));this.setAttribute('aria-pressed',String(this.classList.contains('on')));if(this.classList.contains('on'))document.getElementById('crp').focus()"></button>
     </div>
     <div class="f hidden" id="crpf"><label>Пароль</label><input id="crp" type="password" placeholder="придумай пароль"></div>
@@ -534,7 +534,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);displ
 <!-- MODAL: room password -->
 <div class="ov" id="m-rp">
   <div class="mo">
-    <div class="mt">🔑 Комната защищена паролем</div>
+    <div class="mt">🔒 Комната защищена паролем</div>
     <div class="f"><label>Введите пароль</label><input id="epi" type="password" placeholder="••••••••"></div>
     <div class="fe" id="epe"></div>
     <div class="mr"><button class="btn btn-o" onclick="cM('m-rp')">Отмена</button><button class="btn" onclick="chkRP()">Войти</button></div>
@@ -816,6 +816,7 @@ window.doOut=async()=>{
   try{
     if(me && !isSU()) await remove(ref(db,`users/${me.uid}/inRoom`));
     if(me) await set(ref(db,`users/${me.uid}/online`),false);
+    if(me) await set(ref(db,`users/${me.uid}/hb`),0);
   }catch(e){ console.warn('Presence cleanup failed during sign-out',e); }
   await signOut(auth);
 };
@@ -844,11 +845,11 @@ onAuthStateChanged(auth,async user=>{
       if(uData.gender!=='m') await set(ref(db,`users/${user.uid}/gender`),'m');
     }
     me={uid:user.uid,name:rawName,isSU:isSuperU,gender,profile:uData.profile||{}};
+    try{await ref(db,`users/${user.uid}`).update({uid:user.uid,name:rawName});}
+    catch(e){console.warn("Could not refresh user identity fields",e);}
     // Superuser is invisible — don't appear in online list
     if(!isSuperU){
-      await set(ref(db,`users/${me.uid}/online`),true);
-      await set(ref(db,`users/${me.uid}/hb`),Date.now());
-      onDisconnect(ref(db,`users/${me.uid}/online`)).set(false);
+      await ref(db,`users/${me.uid}`).update({uid:me.uid,name:me.name,online:true,hb:Date.now()});
       onDisconnect(ref(db,`users/${me.uid}/hb`)).set(0);
       startHeartbeat();
     } else {
@@ -904,7 +905,7 @@ function openCh(id,type,title,icon,sub){
       if(isIgnored(m.uid))return;
       renderMsg(m,c);c.scrollTop=c.scrollHeight;
       if(isNew&&m.uid!==me?.uid){
-        if(type==='general')playGeneralSound();
+        if(type==='general'||type==='room')playGeneralSound();
         if(type==='dm')playDMSound();
         if(type==='dm'&&curCh!==id)markDMTabUnread(id);
       }
@@ -912,10 +913,25 @@ function openCh(id,type,title,icon,sub){
   }).catch(err=>{
     if(msgsRef!==channelRef)return;
     console.warn('Could not seed chat history before listening',err);
-    // Preserve live message rendering if the initial read fails; suppress sounds until reopening the chat.
-    onChildAdded(channelRef,snap=>{
-      const m=snap.val();if(isIgnored(m.uid))return;
-      renderMsg(m,c);c.scrollTop=c.scrollHeight;
+    let fallbackSeeded=false;
+    const fallbackKeys=new Set();
+    onValue(channelRef,snap=>{
+      if(msgsRef!==channelRef)return;
+      const incoming=[];
+      snap.forEach(child=>incoming.push([child.key,child.val()]));
+      const isInitial=!fallbackSeeded;
+      fallbackSeeded=true;
+      incoming.forEach(([key,m])=>{
+        if(fallbackKeys.has(key))return;
+        fallbackKeys.add(key);
+        if(isIgnored(m.uid))return;
+        renderMsg(m,c);
+        if(!isInitial && m.uid!==me?.uid){
+          if(type==='general'||type==='room')playGeneralSound();
+          if(type==='dm')playDMSound();
+        }
+      });
+      c.scrollTop=c.scrollHeight;
     });
   });
   listenTyping(id);
@@ -1168,7 +1184,7 @@ function ldRooms(){
     validRooms.forEach(room=>{
       const canDel = me && (isSU() || room.createdBy===me.uid);
       const el=document.createElement('div'); el.className='ci'; el.id='chi-'+room.id;
-      el.innerHTML=`<div class="cico">${room.hasPassword?'🔑':'🔓'}</div>
+      el.innerHTML=`<div class="cico">${room.hasPassword?'🔒':'#️⃣'}</div>
         <div class="ci-inf"><div class="cn">${esc(room.name)}</div>
         <div class="cp">${room.hasPassword?'Приватная комната':'Публичная комната'}</div></div>`
         +(canDel?`<button class="del-btn" title="Удалить комнату" onclick="delRoom(event,'${room.id}','${esc(room.name)}')">🗑</button>`:'');
@@ -1216,11 +1232,10 @@ async function enRoom(room){
     try{await push(ref(db,'moderation/accessLog'),{uid:me.uid,moderator:me.name,type:'room',targetId:room.id,targetName:room.name,at:Date.now()});}
     catch(e){console.warn('Could not record moderator room access',e);}
   }
-  const roomSub=room.hasPassword?'Комната заперта. Здесь начинается зона без правил и табу':'Публичная комната';
-  openCh(room.id,'room',(room.hasPassword?'🔑 ':'# ')+room.name,room.hasPassword?'🔑':'🔓',roomSub);
+  const roomSub=room.hasPassword?'Закрытая комната · сообщения могут проверяться модератором Max':'Публичная комната';
+  openCh(room.id,'room',(room.hasPassword?'🔒 ':'# ')+room.name,room.hasPassword?'🔒':'#️⃣',roomSub);
   if(!isSU()){
     await set(ref(db,`users/${me.uid}/inRoom`), room.id);
-    onDisconnect(ref(db,`users/${me.uid}/inRoom`)).remove();
   }
 }
 
@@ -1289,7 +1304,7 @@ async function openModeratedDM(row){
   try{await push(ref(db,'moderation/accessLog'),{uid:me.uid,moderator:me.name,type:'dm',targetId:row.id,targetName:row.label,at:Date.now()});}
   catch(e){console.warn('Could not record moderator DM access',e);}
   cM('su-dm-modal');
-  openCh(row.id,'dm',row.label,'💬','Двое - это уже секрет. Время сбросить всё лишнее');
+  openCh(row.id,'dm',row.label,'🔒','Личные сообщения могут проверяться модератором Max ради безопасности');
 }
 
 function watchDMConversation(id,u){
@@ -1338,65 +1353,54 @@ function stDM(u){
   set(ref(db,`dms/${id}`),{participants:{[me.uid]:true,[u.uid]:true}});
   oDMCh(id,u);
 }
-function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Двое - это уже секрет. Время сбросить всё лишнее');}
+function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Личные сообщения могут проверяться модератором Max ради безопасности');}
 
 // ── USERS — simple, reliable, no presence complexity
 let _uUnsubGeneral = null;
 let _uUnsubRoom = null;
-let _uSoundRef = null;
-let _uSoundCb = null;
 let _onlineState = {};
 let _onlineSeeded = false;
 
 function initUsersListener(){
   // Unsubscribe previous general listener
   if(_uUnsubGeneral){ try{ _uUnsubGeneral(); }catch(e){} _uUnsubGeneral=null; }
-  // Unsubscribe previous sound listener
-  if(_uSoundRef && _uSoundCb){ try{ _uSoundRef.off('child_changed',_uSoundCb); }catch(e){} _uSoundRef=null; _uSoundCb=null; }
   _onlineState = {};
   _onlineSeeded = false;
 
   const usersRef = ref(db,'users');
 
-  // Seed initial online state without playing sounds, then set up live onValue
-  get(usersRef).then(snap=>{
-    const users = snap.val()||{};
-    Object.values(users).forEach(u=>{
-      if(!u||!u.uid||!u.name) return;
-      if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
-      _onlineState[u.uid]=!!u.online;
-    });
-    _onlineSeeded=true;
-  });
-
-  // Live updates: re-render on any user change
+  // One live listener drives both the roster and transition sounds. Its first snapshot seeds state silently.
   const valueCb = snap=>{
     const users = snap.val()||{};
     _usersCache=users;
     if(!curType || curType === 'general') renderUList(users, null, false);
     if(curType === 'room' && curCh) renderUList(users, curCh, true);
+
+    const nextState={};
+    Object.values(users).forEach(u=>{
+      if(!u||!u.uid||!u.name) return;
+      if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
+      const next=!!u.online;
+      const prev=!!_onlineState[u.uid];
+      nextState[u.uid]=next;
+      if(_onlineSeeded && prev!==next){
+        if(next) playJoinSound();
+        else playLeaveSound();
+      }
+    });
+    if(_onlineSeeded){
+      Object.entries(_onlineState).forEach(([uid,wasOnline])=>{
+        if(wasOnline && !Object.prototype.hasOwnProperty.call(nextState,uid)) playLeaveSound();
+      });
+    }
+    _onlineState=nextState;
+    _onlineSeeded=true;
   };
   usersRef.on('value', valueCb);
   _uUnsubGeneral = ()=>{ usersRef.off('value', valueCb); };
 
   // Start stale-user sweep (ghost cleanup)
   startStaleCheck();
-
-  // Sound notifications: only after seeding is done
-  _uSoundRef = usersRef;
-  _uSoundCb = snap=>{
-    const u=snap.val();
-    if(!u||!u.uid||!u.name) return;
-    if(u.name.toLowerCase()===SUPERUSER.login || u.uid===me?.uid) return;
-    const prev=!!_onlineState[u.uid];
-    const next=!!u.online;
-    if(_onlineSeeded && prev!==next){
-      if(next) playJoinSound();
-      else playLeaveSound();
-    }
-    _onlineState[u.uid]=next;
-  };
-  usersRef.on('child_changed', _uSoundCb);
 }
 
 // Called every time user switches channel
@@ -1474,11 +1478,7 @@ function refreshUsers(){ ldUsers(); }
 
 async function forceOffline(){
   if(!me || isSU()) return;
-  try{
-    if(curType==='room' && curCh) await remove(ref(db,`presence/rooms/${curCh}/${me.uid}`));
-  }catch(e){}
-  try{ await remove(ref(db,`users/${me.uid}/inRoom`)); }catch(e){}
-  try{ await set(ref(db,`users/${me.uid}/online`),false); }catch(e){}
+  // Presence is account-wide, so closing one tab must not mark another active tab offline.
   try{ await set(ref(db,`users/${me.uid}/hb`),0); }catch(e){}
   stopHeartbeat();
 }
@@ -1502,7 +1502,9 @@ function stopHeartbeat(){
 }
 async function _writeHB(){
   if(!me || isSU()) return;
-  try{ await set(ref(db,`users/${me.uid}/hb`), Date.now()); }catch(e){}
+  const presence={uid:me.uid,name:me.name,online:true,hb:Date.now()};
+  if(curType==='room' && curCh) presence.inRoom=curCh;
+  try{ await ref(db,`users/${me.uid}`).update(presence); }catch(e){}
 }
 
 // Called by initUsersListener — sweeps stale users once on load and periodically
@@ -2051,7 +2053,7 @@ const _origODMCh=window.oDMCh;
 function oDMCh(id,u){
   addDMTab(id,u);
   markDMTabRead(id);
-  openCh(id,'dm',u.name,'💬','Двое - это уже секрет. Время сбросить всё лишнее');
+  openCh(id,'dm',u.name,'💬','Личные сообщения могут проверяться модератором Max ради безопасности');
   // Show close-dm btn on mobile
   const cb=g('close-dm-btn');
   if(cb) cb.style.display=window.innerWidth<=660?'':'none';
