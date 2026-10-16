@@ -1318,7 +1318,7 @@ async function openModeratedDM(row){
   try{await push(ref(db,'moderation/accessLog'),{uid:me.uid,moderator:me.name,type:'dm',targetId:row.id,targetName:row.label,at:Date.now()});}
   catch(e){console.warn('Could not record moderator DM access',e);}
   cM('su-dm-modal');
-  openCh(row.id,'dm',row.label,'🔒','Личные сообщения могут проверяться модератором Max ради безопасности');
+  openCh(row.id,'dm',row.label,'🔒','Приятного общения');
 }
 
 function watchDMConversation(id,u){
@@ -1367,7 +1367,7 @@ function stDM(u){
   set(ref(db,`dms/${id}`),{participants:{[me.uid]:true,[u.uid]:true}});
   oDMCh(id,u);
 }
-function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Личные сообщения могут проверяться модератором Max ради безопасности');}
+function oDMCh(id,u){openCh(id,'dm',u.name,'💬','Приятного общения');}
 
 // ── USERS — simple, reliable, no presence complexity
 let _uUnsubGeneral = null;
@@ -2088,7 +2088,7 @@ const _origODMCh=window.oDMCh;
 function oDMCh(id,u){
   addDMTab(id,u);
   markDMTabRead(id);
-  openCh(id,'dm',u.name,'💬','Личные сообщения могут проверяться модератором Max ради безопасности');
+  openCh(id,'dm',u.name,'💬','Приятного общения');
   // Show close-dm btn on mobile
   const cb=g('close-dm-btn');
   if(cb) cb.style.display=window.innerWidth<=660?'':'none';
