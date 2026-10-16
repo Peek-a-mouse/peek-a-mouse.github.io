@@ -892,7 +892,7 @@ function openCh(id,type,title,icon,sub){
   const c=g('msgs'); c.innerHTML='';
   if(msgsRef)off(msgsRef);
   const path=type==='general'?'messages/general':type==='room'?`messages/rooms/${id}`:`messages/dms/${id}`;
-  const channelRef=query(ref(db,path),orderByChild('ts'),limitToLast(200));
+  const channelRef=query(ref(db,path),limitToLast(200));
   msgsRef=channelRef;
   const reportReadError=err=>{
     console.error('Realtime Database message listener failed',err);
@@ -1323,7 +1323,7 @@ async function openModeratedDM(row){
 
 function watchDMConversation(id,u){
   if(_dmWatchers[id]) return;
-  const dmRef=query(ref(db,`messages/dms/${id}`),orderByChild('ts'),limitToLast(1));
+  const dmRef=query(ref(db,`messages/dms/${id}`),limitToLast(1));
   let initialized=false;
   const handler=snap=>{
     const m=snap.val();
